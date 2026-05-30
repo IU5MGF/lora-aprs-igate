@@ -1,0 +1,12 @@
+[Unit]
+Description=LoRa APRS MQTT Telegram
+After=network.target mosquitto.service syslog-collector.service
+
+[Service]
+ExecStart=/usr/bin/python3 /usr/local/bin/mqtt-telegram.py
+Restart=always
+RestartSec=5
+User=RPI_USER_PLACEHOLDER
+
+[Install]
+WantedBy=multi-user.target

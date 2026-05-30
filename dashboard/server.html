@@ -1,0 +1,96 @@
+<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>CALLSIGN_PLACEHOLDER Server</title><link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet"><style>:root{--bg:#0a0c0f;--bg2:#0f1318;--bg3:#151a21;--border:#1e2a35;--accent:#00d4ff;--accent2:#ff4d4d;--accent3:#00ff9f;--text:#c8d8e8;--text-dim:#4a6070;--mono:"Share Tech Mono",monospace;--sans:"Rajdhani",sans-serif}*{margin:0;padding:0;box-sizing:border-box}body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh}body::before{content:"";position:fixed;top:0;left:0;right:0;bottom:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,212,255,.015) 2px,rgba(0,212,255,.015) 4px);pointer-events:none;z-index:1000}header{background:var(--bg2);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}.logo{display:flex;align-items:center;gap:12px}.logo-icon{width:36px;height:36px;border:2px solid var(--accent);border-radius:4px;display:flex;align-items:center;justify-content:center;animation:pulse-border 2s infinite}@keyframes pulse-border{0%,100%{box-shadow:0 0 4px var(--accent)}50%{box-shadow:0 0 12px var(--accent)}}.logo-icon svg{width:20px;height:20px;fill:var(--accent)}.logo-text{font-family:var(--mono);font-size:18px;color:var(--accent);letter-spacing:2px}.logo-sub{font-size:11px;color:var(--text-dim);letter-spacing:3px;text-transform:uppercase}.header-right{display:flex;align-items:center;gap:12px}.main{padding:20px 24px;max-width:1400px;margin:0 auto}.panel{background:var(--bg2);border:1px solid var(--border);overflow:hidden;margin-bottom:16px}.panel-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg3)}.panel-title{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--accent);font-family:var(--mono)}.section{padding:16px;border-bottom:1px solid var(--border)}.section:last-child{border-bottom:none}.section-title{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--text-dim);margin-bottom:12px;font-family:var(--mono)}.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:8px}.info-item{display:flex;flex-direction:column;gap:4px}.info-label{font-family:var(--mono);font-size:9px;color:var(--text-dim);letter-spacing:2px;text-transform:uppercase}.info-value{font-family:var(--mono);font-size:22px;color:var(--accent)}.info-unit{font-family:var(--mono);font-size:10px;color:var(--text-dim)}.gauge-row{margin-bottom:12px}.gauge-header{display:flex;justify-content:space-between;margin-bottom:4px}.gauge-name{font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:2px;text-transform:uppercase}.gauge-val{font-family:var(--mono);font-size:10px;color:var(--text)}.gauge-bar-bg{height:8px;background:var(--bg3);border-radius:4px;overflow:hidden}.gauge-bar{height:100%;border-radius:4px;transition:width .8s ease}.net-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.net-item{display:flex;flex-direction:column;gap:4px}.net-label{font-family:var(--mono);font-size:9px;color:var(--text-dim);letter-spacing:2px;text-transform:uppercase}.net-value{font-family:var(--mono);font-size:28px;color:var(--accent)}.net-unit{font-family:var(--mono);font-size:10px;color:var(--text-dim)}.nav-dropdown{position:relative;display:inline-block}.nav-btn{font-family:"Share Tech Mono",monospace;font-size:11px;color:#00d4ff;border:1px solid #1e2a35;padding:6px 14px;letter-spacing:2px;background:transparent;cursor:pointer;display:flex;align-items:center;gap:8px}.nav-btn:hover{border-color:#00d4ff}.dropdown-menu{display:none;position:absolute;right:0;top:100%;margin-top:4px;background:#0f1318;border:1px solid #1e2a35;min-width:160px;z-index:200}.nav-dropdown.open .dropdown-menu{display:block}.dropdown-item{display:block;font-family:"Share Tech Mono",monospace;font-size:11px;color:#00d4ff;text-decoration:none;padding:8px 16px;letter-spacing:2px;white-space:nowrap;border-bottom:1px solid #1e2a35}.dropdown-item:last-child{border-bottom:none}.dropdown-item:hover{background:rgba(0,212,255,0.05)}footer{text-align:center;padding:16px;font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:2px;border-top:1px solid var(--border);margin-top:16px}</style></head>
+<body>
+<header><div class="logo"><div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg></div><div><div class="logo-text">CALLSIGN_PLACEHOLDER</div><div class="logo-sub">Server RPi5</div></div></div><div class="header-right"><div class="nav-dropdown" id="navDropdown"><button class="nav-btn" onclick="document.getElementById('navDropdown').classList.toggle('open')">MENU &#9660;</button><div class="dropdown-menu"><a class="dropdown-item" href="/">&#128268; DASHBOARD</a><a class="dropdown-item" href="/stations">&#128290; STAZIONI</a><a class="dropdown-item" href="/stats">&#9998; STATISTICHE</a><a class="dropdown-item" href="/map">&#9783; MAPPA</a><a class="dropdown-item" href="/server">&#128421; SERVER</a><a class="dropdown-item" href="/events">&#128221; EVENTI</a><a class="dropdown-item" href="/wx">&#127780; WX</a></div></div><script>document.addEventListener('click',function(e){var d=document.getElementById('navDropdown');if(d&&!d.contains(e.target))d.classList.remove('open');});
+async function doReboot(target){
+  const pwd = document.getElementById('reboot-pwd').value;
+  document.getElementById('reboot-msg').textContent = 'In corso...';
+  try{
+    const r = await fetch('/api/reboot', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:pwd, target:target})});
+    const d = await r.json();
+    document.getElementById('reboot-msg').textContent = d.msg;
+    document.getElementById('reboot-msg').style.color = d.ok ? 'var(--accent3)' : 'var(--accent2)';
+    document.getElementById('reboot-pwd').value = '';
+    setTimeout(()=>{ document.getElementById('reboot-msg').textContent=''; }, 5000);
+  }catch(e){
+    document.getElementById('reboot-msg').textContent = 'Errore connessione';
+    document.getElementById('reboot-pwd').value = '';
+  }
+}
+</script></div></header>
+<div class="main">
+<div class="panel">
+<div class="panel-header"><span class="panel-title">Stato sistema</span><span style="font-family:var(--mono);font-size:10px;color:var(--text-dim)" id="last-update">-</span></div>
+
+<div class="section">
+<div class="section-title">Sistema</div>
+<div class="info-grid">
+
+<div class="info-item"><div class="info-label">Uptime</div><div class="info-value" style="font-size:18px" id="s-uptime">-</div><div class="info-unit">dall ultimo riavvio</div></div>
+</div>
+</div>
+
+<div class="section">
+<div class="section-title">Storage</div>
+<div class="gauge-row"><div class="gauge-header"><span class="gauge-name">SSD</span><span class="gauge-val" id="g-disk-val">-</span></div><div class="gauge-bar-bg"><div class="gauge-bar" id="g-disk" style="width:0%;background:var(--accent3)"></div></div></div>
+</div>
+
+</div>
+</div>
+<div class="panel">
+<div class="panel-header"><span class="panel-title">Controllo server</span></div>
+<div class="section">
+<div class="section-title">Riavvio</div>
+<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+<input type="password" id="reboot-pwd" autocomplete="off" placeholder="Password..." style="font-family:var(--mono);font-size:11px;background:var(--bg);color:var(--text);border:1px solid var(--border);padding:6px 10px;outline:none;width:160px">
+<button onclick="doReboot('server')" style="font-family:var(--mono);font-size:11px;padding:6px 16px;background:var(--accent2);color:white;border:none;cursor:pointer;letter-spacing:1px">&#8635; RIAVVIA SERVER</button>
+<button onclick="doReboot('igate')" style="font-family:var(--mono);font-size:11px;padding:6px 16px;background:var(--accent);color:var(--bg);border:none;cursor:pointer;letter-spacing:1px">&#8635; RIAVVIA IGATE</button>
+<span id="reboot-msg" style="font-family:var(--mono);font-size:11px;color:var(--accent3)"></span>
+</div>
+</div>
+</div><footer>CALLSIGN_PLACEHOLDER &middot; CA2RXU LoRa iGate/Digipeater &middot; LOCATION_PLACEHOLDER</footer>
+<script>
+async function loadServer(){
+  try{
+    const data = await (await fetch('/api/system_stats')).json();
+    if(!data.data || !data.data.length) return;
+    const last = data.data[data.data.length-1];
+
+    document.getElementById('last-update').textContent = 'aggiornato: '+last.time;
+
+    // sistema
+    if(data.live_uptime){
+      const h = Math.floor(data.live_uptime/3600);
+      const m = Math.floor((data.live_uptime%3600)/60);
+      document.getElementById('s-uptime').textContent = h+'h '+m+'m';
+    }
+
+    // storage
+    const diskPerc = last.disk_perc || 0;
+    const diskColor = diskPerc > 80 ? 'var(--accent2)' : 'var(--accent3)';
+    document.getElementById('g-disk').style.width = diskPerc+'%';
+    document.getElementById('g-disk').style.background = diskColor;
+    document.getElementById('g-disk-val').textContent = diskPerc+'% — '+last.disk_used+'GB / '+last.disk_total+'GB';
+
+  }catch(e){console.error(e);}
+}
+
+loadServer();
+setInterval(loadServer, 60000);
+
+async function doReboot(target){
+  const pwd = document.getElementById('reboot-pwd').value;
+  document.getElementById('reboot-msg').textContent = 'In corso...';
+  try{
+    const r = await fetch('/api/reboot', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:pwd, target:target})});
+    const d = await r.json();
+    document.getElementById('reboot-msg').textContent = d.msg;
+    document.getElementById('reboot-msg').style.color = d.ok ? 'var(--accent3)' : 'var(--accent2)';
+    document.getElementById('reboot-pwd').value = '';
+    setTimeout(()=>{ document.getElementById('reboot-msg').textContent=''; }, 5000);
+  }catch(e){
+    document.getElementById('reboot-msg').textContent = 'Errore connessione';
+    document.getElementById('reboot-pwd').value = '';
+  }
+}
+</script>
+</body></html>

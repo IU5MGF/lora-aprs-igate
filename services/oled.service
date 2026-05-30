@@ -1,0 +1,12 @@
+[Unit]
+Description=OLED Display Driver
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 /mnt/ssd/oled/oled.py
+Restart=always
+RestartSec=5
+User=RPI_USER_PLACEHOLDER
+
+[Install]
+WantedBy=multi-user.target

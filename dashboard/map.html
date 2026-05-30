@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CALLSIGN_PLACEHOLDER Mappa</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0c0f;font-family:"Rajdhani",sans-serif}
+header{background:#0f1318;border-bottom:1px solid #1e2a35;padding:12px 24px;display:flex;align-items:center;justify-content:space-between}
+.logo-text{font-family:"Share Tech Mono",monospace;font-size:18px;color:#00d4ff;letter-spacing:2px}
+.logo-sub{font-size:11px;color:#4a6070;letter-spacing:3px;text-transform:uppercase}
+.back-btn{font-family:"Share Tech Mono",monospace;font-size:11px;color:#00d4ff;text-decoration:none;border:1px solid #1e2a35;padding:6px 14px;letter-spacing:2px}
+#map{height:calc(100vh - 90px);width:100%}
+.leaflet-popup-content-wrapper{background:#0f1318;border:1px solid #00d4ff;border-radius:2px;color:#c8d8e8;font-family:"Share Tech Mono",monospace;font-size:11px}
+.leaflet-popup-tip{background:#0f1318}
+.stat-bar{display:flex;gap:16px;padding:8px 24px;background:#0f1318;border-bottom:1px solid #1e2a35;font-family:"Share Tech Mono",monospace;font-size:11px;color:#4a6070;flex-wrap:wrap;align-items:center}
+.toggle-btn{font-family:"Share Tech Mono",monospace;font-size:10px;padding:4px 10px;border:1px solid #1e2a35;background:transparent;color:#4a6070;cursor:pointer;border-radius:3px;letter-spacing:1px}
+.toggle-btn.active{border-color:#00d4ff;color:#00d4ff;background:rgba(0,212,255,0.1)}
+<style>.nav-dropdown{position:relative;display:inline-block}.nav-btn{font-family:"Share Tech Mono",monospace;font-size:11px;color:#00d4ff;text-decoration:none;border:1px solid #1e2a35;padding:6px 14px;letter-spacing:2px;background:transparent;cursor:pointer;display:flex;align-items:center;gap:8px}.nav-btn:hover{border-color:#00d4ff}.nav-arrow{font-size:8px;transition:transform 0.2s}.nav-dropdown.open .nav-arrow{transform:rotate(180deg)}.dropdown-menu{display:none;position:absolute;right:0;top:100%;margin-top:4px;background:#0f1318;border:1px solid #1e2a35;min-width:160px;z-index:200}.nav-dropdown.open .dropdown-menu{display:block}.dropdown-item{display:block;font-family:"Share Tech Mono",monospace;font-size:11px;color:#00d4ff;text-decoration:none;padding:8px 16px;letter-spacing:2px;white-space:nowrap;border-bottom:1px solid #1e2a35}.dropdown-item:last-child{border-bottom:none}.dropdown-item:hover{background:rgba(0,212,255,0.05)}.dropdown-item.active{color:#00ff9f}</style></style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="logo-text">CALLSIGN_PLACEHOLDER</div>
+    <div class="logo-sub">Mappa stazioni &middot; ultimi 60 min</div>
+  </div>
+  <a href="/" class="back-btn">&#8592; DASHBOARD</a>
+</header>
+<div class="stat-bar">
+  <span>RF diretta: <span id="stat-rf" style="color:#00ff9f">-</span></span>
+  <span>Digipeated: <span id="stat-digi" style="color:#ffd700">-</span></span>
+  <span>Totale: <span id="stat-total" style="color:#00d4ff">-</span></span>
+  <span>Max distanza: <span id="stat-maxdist" style="color:#00d4ff">-</span></span>
+  <span style="color:#00ff9f">&#9679; RF diretta</span>
+  <span style="color:#ffd700">&#9679; Digipeated</span>
+  <button class="toggle-btn" id="heatmap-btn" onclick="toggleHeatmap()">HEATMAP OFF</button>
+</div>
+<div id="map"></div>
+
+<script>
+const map = L.map("map").setView([43.68, 11.53], 9);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: "&copy; OpenStreetMap", maxZoom: 18
+}).addTo(map);
+
+L.marker([43.68047, 11.52987], {
+  icon: L.divIcon({
+    className: "",
+    html: "<div style='background:#00d4ff;width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 0 8px #00d4ff'></div>",
+    iconSize: [14, 14], iconAnchor: [7, 7]
+  })
+}).addTo(map).bindPopup("<b>CALLSIGN_PLACEHOLDER</b><br>LoRa APRS iGate<br>LOCATION_PLACEHOLDER");
+
+function addTwoHours(ts) {
+  if (!ts) return "";
+  const t = ts.length > 5 ? ts.substring(11, 16) : ts;
+  const parts = t.split(":");
+  let h = parseInt(parts[0]) + 2;
+  if (h >= 24) h -= 24;
+  return String(h).padStart(2, "0") + ":" + parts[1];
+}
+
+function makeLabel(callsign, color) {
+  return "<div style='position:absolute;top:-16px;left:14px;color:" + color + ";font-size:9px;font-weight:bold;white-space:nowrap;background:rgba(0,0,0,0.6);padding:1px 3px;border-radius:2px'>" + callsign + "</div>";
+}
+
+let markers = [];
+let heatLayer = null;
+let heatmapActive = false;
+
+async function loadMap() {
+  try {
+    const data = await (await fetch("/api/map")).json();
+    const rf = data.filter(s => s.type === "rf");
+    const digi = data.filter(s => s.type === "digi");
+
+    document.getElementById("stat-rf").textContent = rf.length;
+    document.getElementById("stat-digi").textContent = digi.length;
+    document.getElementById("stat-total").textContent = data.length;
+
+    const dists = data.map(d => d.distance).filter(d => d > 0);
+    if (dists.length) document.getElementById("stat-maxdist").textContent = Math.max(...dists) + " km";
+
+    markers.forEach(m => map.removeLayer(m));
+    markers = [];
+
+    data.forEach(function(s) {
+      const color = s.type === "rf" ? "#00ff9f" : "#ffd700";
+      const size = 10;
+      const ora = addTwoHours(s.last_ts);
+      const html = "<div style='position:relative'>"
+        + "<div style='background:" + color + ";width:" + size + "px;height:" + size + "px;border-radius:50%;border:2px solid white;box-shadow:0 0 6px " + color + "'></div>"
+        + makeLabel(s.callsign, color)
+        + "</div>";
+      const marker = L.marker([s.lat, s.lon], {
+        icon: L.divIcon({ className: "", html: html, iconSize: [size, size], iconAnchor: [size/2, size/2] })
+      }).addTo(map);
+      marker.bindPopup(
+        "<b>" + s.callsign + "</b><br>"
+        + "Tipo: " + (s.type === "rf" ? "RF diretta" : "Digipeated") + "<br>"
+        + "RSSI: " + s.rssi + " dBm<br>"
+        + "Distanza: " + s.distance + " km<br>"
+        + "Ultimo: " + ora
+      );
+      markers.push(marker);
+    });
+  } catch(e) { console.error(e); }
+  // tracce stazioni in movimento
+  try {
+    if(window.trackLayers) window.trackLayers.forEach(l => map.removeLayer(l));
+    window.trackLayers = [];
+    const tracks = await (await fetch("/api/tracks")).json();
+    Object.keys(tracks).forEach(function(call){
+      const t = tracks[call];
+      if(!t.points || t.points.length < 2) return;
+      const color = t.type === "rf" ? "#00ff9f" : "#ffd700";
+      const latlngs = t.points.map(p => [p.lat, p.lon]);
+      const line = L.polyline(latlngs, {color: color, weight: 2, opacity: 0.7, dashArray: "4,4"}).addTo(map);
+      window.trackLayers.push(line);
+      t.points.forEach(function(p, i){
+        if(i === t.points.length-1) return;
+        const dot = L.circleMarker([p.lat, p.lon], {radius: 3, color: color, fillColor: color, fillOpacity: 0.6, weight: 1}).addTo(map);
+        dot.bindTooltip(call + " " + p.time, {permanent: false});
+        window.trackLayers.push(dot);
+      });
+    });
+  } catch(e) { console.error(e); }
+}
+
+async function loadHeatmap() {
+  try {
+    const data = await (await fetch("/api/heatmap")).json();
+    if (heatLayer) {
+      map.removeLayer(heatLayer);
+    }
+    heatLayer = L.heatLayer(data, {
+      radius: 25,
+      blur: 20,
+      maxZoom: 12,
+      max: 1.0,
+      gradient: {0.2: 'blue', 0.4: 'cyan', 0.6: 'lime', 0.8: 'yellow', 1.0: 'red'}
+    }).addTo(map);
+  } catch(e) { console.error(e); }
+}
+
+function toggleHeatmap() {
+  heatmapActive = !heatmapActive;
+  const btn = document.getElementById("heatmap-btn");
+  if (heatmapActive) {
+    btn.textContent = "HEATMAP ON";
+    btn.classList.add("active");
+    loadHeatmap();
+  } else {
+    btn.textContent = "HEATMAP OFF";
+    btn.classList.remove("active");
+    if (heatLayer) {
+      map.removeLayer(heatLayer);
+      heatLayer = null;
+    }
+  }
+}
+
+loadMap();
+setInterval(loadMap, 60000);
+</script>
+</body>
+</html>
