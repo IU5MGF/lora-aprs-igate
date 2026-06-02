@@ -5,32 +5,37 @@ import time
 import threading
 import pytz
 import os
+import sys
 from datetime import datetime, timezone, timedelta
 
-BOT_TOKEN = "8690398015:AAHr3NGhpPuhCj_45ycve0CAaKYdJSu2VZ4"
-CHAT_ID = "443526140"
-DB_PATH = "/mnt/ssd/radio/data/aprs.db"
+sys.path.insert(0, "/usr/local/lib/lora-aprs")
+from config import (
+    CALLSIGN, BOT_TOKEN_NOTIFY, CHAT_ID_NOTIFY,
+    BOT_TOKEN_ALERT, CHAT_ID_ALERT,
+    DB_PATH, TIMEZONE, DATA_DIR
+)
+
 POLL_INTERVAL = 30
-
-
-ROME = pytz.timezone("Europe/Rome")
+ROME = pytz.timezone(TIMEZONE)
 
 def now_rome():
     return datetime.now(ROME)
 
-def send_telegram(msg):
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+def send_telegram(msg, alert=False):
+    token = BOT_TOKEN_ALERT if alert else BOT_TOKEN_NOTIFY
+    chat  = CHAT_ID_ALERT   if alert else CHAT_ID_NOTIFY
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
     try:
-        r = requests.post(url, data={"chat_id": CHAT_ID, "text": msg, "parse_mode": "HTML"})
+        r = requests.post(url, data={"chat_id": chat, "text": msg, "parse_mode": "HTML"})
         if r.status_code != 200:
             print(f"Telegram error: {r.text}", flush=True)
     except Exception as e:
         print(f"Telegram error: {e}", flush=True)
 
-LAST_ID_FILE = "/mnt/ssd/radio/data/last_notified_id"
+LAST_ID_FILE     = os.path.join(DATA_DIR, "last_notified_id")
+REPORT_SENT_FILE = os.path.join(DATA_DIR, "last_report_sent")
 
 def get_last_id():
-    # prima prova dal file persistente
     try:
         with open(LAST_ID_FILE, "r") as f:
             saved = int(f.read().strip())
@@ -39,7 +44,6 @@ def get_last_id():
                 return saved
     except:
         pass
-    # fallback: leggi dal DB
     try:
         db = sqlite3.connect(DB_PATH)
         row = db.execute("SELECT MAX(id) FROM packets").fetchone()
@@ -54,16 +58,6 @@ def save_last_id(pid):
             f.write(str(pid))
     except Exception as e:
         print(f"Save last_id error: {e}", flush=True)
-
-def check_container(name):
-    try:
-        import docker
-        client = docker.from_env()
-        container = client.containers.get(name)
-        return container.status == "running"
-    except:
-        return False
-
 def poll_packets():
     global last_id
     try:
@@ -71,9 +65,9 @@ def poll_packets():
         rows = db.execute(
             """SELECT id, timestamp, callsign, path, rssi, snr, distance, comment
                FROM packets WHERE id > ? AND crc_ok=1 AND msg_type='RX'
-               AND callsign IS NOT NULL AND callsign != 'IU5MGF-10'
+               AND callsign IS NOT NULL AND callsign != ?
                ORDER BY id ASC""",
-            (last_id,)
+            (last_id, CALLSIGN)
         ).fetchall()
         db.close()
         for row in rows:
@@ -85,11 +79,11 @@ def poll_packets():
             except:
                 time_str = ts[11:16] if ts else "-"
             rssi_str = f"{rssi} dBm" if rssi else "-"
-            snr_str = f"{snr} dB" if snr else "-"
+            snr_str  = f"{snr} dB"   if snr  else "-"
             dist_str = f"{distance} km" if distance else "-"
             digipeated = " \u2605" if path and "*" in path else ""
             msg_text = (
-                "\U0001f534 LoRa APRS IU5MGF-10\n"
+                f"\U0001f534 LoRa APRS {CALLSIGN}\n"
                 + f"\U0001f4e1 {callsign}{digipeated}\n"
                 + f"\U0001f4f6 RSSI: <b>{rssi_str}</b>  SNR: <b>{snr_str}</b>\n"
                 + f"\U0001f4cf Distanza: {dist_str}\n"
@@ -97,43 +91,45 @@ def poll_packets():
                 + (f"\U0001f4ac {comment}\n" if comment else "")
                 + f"\u23f1 {time_str}"
             )
-            # controlla se stazione nuova
             try:
                 db_check = sqlite3.connect(DB_PATH)
-                count = db_check.execute("SELECT COUNT(*) FROM packets WHERE callsign=? AND id < ?", (callsign, pid)).fetchone()[0]
+                count = db_check.execute(
+                    "SELECT COUNT(*) FROM packets WHERE callsign=? AND id < ?",
+                    (callsign, pid)
+                ).fetchone()[0]
                 db_check.close()
                 if count == 0:
                     db_ev = sqlite3.connect(DB_PATH)
-                    from datetime import timezone as _tz
                     ts_ev = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
-                    db_ev.execute("INSERT INTO events (timestamp, type, message) VALUES (?,?,?)",
-                        (ts_ev, "NUOVA_STAZIONE", f"Prima ricezione: {callsign} a {dist_str}"))
+                    db_ev.execute(
+                        "INSERT INTO events (timestamp, type, message) VALUES (?,?,?)",
+                        (ts_ev, "NUOVA_STAZIONE", f"Prima ricezione: {callsign} a {dist_str}")
+                    )
                     db_ev.commit()
                     db_ev.close()
             except Exception as ev_e:
                 print(f"Event log error: {ev_e}", flush=True)
             send_telegram(msg_text)
             print(f"Notifica inviata: {callsign}", flush=True)
-            open("/tmp/mqtt_last_notified_id", "w").write(str(pid))
             save_last_id(pid)
             time.sleep(1)
     except Exception as e:
         print(f"Poll error: {e}", flush=True)
-
 def daily_report():
     now = now_rome()
     yesterday = (now - timedelta(days=1)).strftime("%Y-%m-%d")
-    date_str = (now - timedelta(days=1)).strftime("%d/%m/%Y")
+    date_str  = (now - timedelta(days=1)).strftime("%d/%m/%Y")
     try:
         db = sqlite3.connect(DB_PATH)
         db.row_factory = sqlite3.Row
         row = db.execute("SELECT * FROM daily_stats WHERE date=?", (yesterday,)).fetchone()
         top5 = db.execute("""SELECT callsign, COUNT(*) as cnt FROM packets
-            WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL AND callsign != 'IU5MGF-10'
+            WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL AND callsign != ?
             AND path NOT LIKE '%*%'
             AND replace(timestamp,'T',' ') >= datetime(?, '-2 hours')
             AND replace(timestamp,'T',' ') < datetime(?, '+22 hours')
-            GROUP BY callsign ORDER BY cnt DESC LIMIT 5""", (yesterday, yesterday)).fetchall()
+            GROUP BY callsign ORDER BY cnt DESC LIMIT 5""",
+            (CALLSIGN, yesterday, yesterday)).fetchall()
         db.close()
     except Exception as e:
         print(f"DB error daily: {e}", flush=True)
@@ -146,7 +142,7 @@ def daily_report():
     best_str = f"{row['best_callsign']} - {row['best_distance']} km" if row['best_callsign'] else "-"
     peak_str = f"{row['peak_hour']}:00" if row['peak_hour'] else "-"
     msg = (
-        f"\U0001f4ca <b>IU5MGF-10 - Report {date_str}</b>\n\n"
+        f"\U0001f4ca <b>{CALLSIGN} - Report {date_str}</b>\n\n"
         + f"\U0001f4e6 Pacchetti totali: <b>{row['total_packets']}</b>\n"
         + f"\U0001f4f6 RF diretta: <b>{row['total_rf']}</b> | Digipeated: <b>{row['total_digi']}</b>\n"
         + f"\U0001f4e1 Stazioni uniche: <b>{row['unique_stations']}</b>\n"
@@ -164,18 +160,18 @@ def daily_report():
         pass
     schedule_daily_report()
 
-
 def schedule_daily_report():
     now_rome_dt = datetime.now(ROME)
-    next_8 = ROME.localize(now_rome_dt.replace(hour=8, minute=0, second=0, microsecond=0).replace(tzinfo=None))
+    next_8 = ROME.localize(
+        now_rome_dt.replace(hour=8, minute=0, second=0, microsecond=0).replace(tzinfo=None)
+    )
     if now_rome_dt >= next_8:
-        next_8 = next_8 + timedelta(days=1)
+        next_8 += timedelta(days=1)
     seconds = (next_8 - datetime.now(ROME)).total_seconds()
     print(f"Prossimo report giornaliero in {int(seconds)}s ({next_8.strftime('%Y-%m-%d %H:%M %Z')})", flush=True)
     timer = threading.Timer(seconds, daily_report)
     timer.daemon = True
     timer.start()
-
 def system_report():
     try:
         try:
@@ -190,34 +186,36 @@ def system_report():
                 mem[parts[0]] = int(parts[1])
         ram_total = mem.get("MemTotal:", 0) // 1024
         ram_avail = mem.get("MemAvailable:", 0) // 1024
-        ram_used = ram_total - ram_avail
-        ram_perc = round(ram_used / ram_total * 100, 1) if ram_total else 0
+        ram_used  = ram_total - ram_avail
+        ram_perc  = round(ram_used / ram_total * 100, 1) if ram_total else 0
         try:
-            st = os.statvfs("/mnt/ssd")
-            disk_total = st.f_blocks * st.f_frsize // (1024**3)
-            disk_free = st.f_bavail * st.f_frsize // (1024**3)
+            from config import HAS_SSD, SSD_MOUNT
+            if not HAS_SSD: raise Exception("no ssd")
+            st = os.statvfs(SSD_MOUNT)
+            disk_total   = st.f_blocks * st.f_frsize // (1024**3)
+            disk_free    = st.f_bavail * st.f_frsize // (1024**3)
             disk_used_gb = disk_total - disk_free
-            disk_perc = round(disk_used_gb / disk_total * 100, 1) if disk_total else 0
-            disk_str = f"{disk_used_gb}GB / {disk_total}GB ({disk_perc}%)"
+            disk_perc    = round(disk_used_gb / disk_total * 100, 1) if disk_total else 0
+            disk_str     = f"{disk_used_gb}GB / {disk_total}GB ({disk_perc}%)"
         except:
             disk_str = "N/D"
         try:
-            secs = float(open("/proc/uptime").read().split()[0])
-            h = int(secs // 3600)
-            m = int((secs % 3600) // 60)
+            secs   = float(open("/proc/uptime").read().split()[0])
+            h      = int(secs // 3600)
+            m      = int((secs % 3600) // 60)
             uptime = f"{h}h {m}m"
         except:
             uptime = "N/D"
         now = now_rome().strftime("%H:%M")
         msg = (
-            "\U0001f5a5 <b>Report sistema RPi 5</b>\n"
+            "\U0001f5a5 <b>Report sistema RPi</b>\n"
             + f"\u23f1 {now}\n\n"
             + f"\U0001f321 Temperatura: <b>{temp}</b>\n"
             + f"\U0001f4be RAM: <b>{ram_used}MB / {ram_total}MB ({ram_perc}%)</b>\n"
             + f"\U0001f4bd SSD: <b>{disk_str}</b>\n"
-            + f"\u26a1 Uptime: <b>{uptime}</b>\n"
+            + f"\u26a1 Uptime: <b>{uptime}</b>"
         )
-        send_telegram(msg)
+        send_telegram(msg, alert=True)
         print(f"Report sistema inviato: {now}", flush=True)
     except Exception as e:
         print(f"System report error: {e}", flush=True)
@@ -229,16 +227,10 @@ def start_system_report():
     print("Avvio report sistema ogni 2 ore", flush=True)
     system_report()
 
-# avvio
-last_id = get_last_id()
-# controlla se il report giornaliero è già stato inviato oggi
-REPORT_SENT_FILE = "/mnt/ssd/radio/data/last_report_sent"
-
 def check_missed_report():
     now = datetime.now(ROME)
     today_str = now.strftime("%Y-%m-%d")
     if now.hour >= 8:
-        # controlla se il report di oggi è già stato inviato
         try:
             with open(REPORT_SENT_FILE, "r") as f:
                 last_sent = f.read().strip()
@@ -249,7 +241,7 @@ def check_missed_report():
             pass
         yesterday = (now - timedelta(days=1)).strftime("%Y-%m-%d")
         try:
-            db = sqlite3.connect(DB_PATH)
+            db  = sqlite3.connect(DB_PATH)
             row = db.execute("SELECT date FROM daily_stats WHERE date=?", (yesterday,)).fetchone()
             db.close()
             if row:
@@ -259,12 +251,15 @@ def check_missed_report():
                 print(f"Nessun dato daily_stats per {yesterday}, skip", flush=True)
         except Exception as e:
             print(f"Check missed report error: {e}", flush=True)
+
+last_id = get_last_id()
 print(f"Ultimo ID nel DB: {last_id}", flush=True)
 
 send_telegram(
-    "\u2705 <b>IU5MGF-10 sistema avviato</b>\n"
-    + "\U0001f5a5 RPi 5 online\n"
-    + f"\u23f1 {now_rome().strftime('%H:%M')}"
+    f"\u2705 <b>{CALLSIGN} sistema avviato</b>\n"
+    + "\U0001f5a5 RPi online\n"
+    + f"\u23f1 {now_rome().strftime('%H:%M')}",
+    alert=True
 )
 
 check_missed_report()
