@@ -74,11 +74,17 @@ LONGITUDE=$(ask "Longitudine decimale (es. 11.52987)")
 # Geocoding inverso
 echo ""
 echo -e "${GREEN}Ricerca citta dalle coordinate...${NC}"
-LOCATION=$(curl -s "https://nominatim.openstreetmap.org/reverse?lat=${LATITUDE}&lon=${LONGITUDE}&format=json" 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['address'].get('city') or d['address'].get('town') or d['address'].get('village',''))" 2>/dev/null)
+LOCATION=$(curl -s --max-time 5 "https://nominatim.openstreetmap.org/reverse?lat=${LATITUDE}&lon=${LONGITUDE}&format=json" 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['address'].get('city') or d['address'].get('town') or d['address'].get('village',''))" 2>/dev/null)
 if [ -z "$LOCATION" ]; then
-    LOCATION=$(ask "Citta non trovata, inserisci manualmente")
+    echo -e "${YELLOW}  Geocoding non disponibile${NC}"
+    LOCATION=$(ask "Inserisci la tua citta")
 else
     echo -e "${GREEN}  Citta trovata: ${LOCATION}${NC}"
+    read -p "$(echo -e ${YELLOW})Confermi ${LOCATION}? [s/n, default: s]: $(echo -e ${NC})" confirm
+    confirm="${confirm:-s}"
+    if [ "$confirm" != "s" ] && [ "$confirm" != "S" ]; then
+        LOCATION=$(ask "Inserisci la tua citta")
+    fi
 fi
 
 echo ""
@@ -261,6 +267,19 @@ CRONEOF
 ) | crontab -
 
 echo "  ✓ Crontab configurato"
+
+# =============================================================================
+# Copia file dashboard HTML
+# =============================================================================
+echo ""
+echo -e "${GREEN}Copia file dashboard HTML...${NC}"
+DASHBOARD_SRC="$(cd "$(dirname "$0")" && pwd)/dashboard"
+DASHBOARD_DST="${DATA_DIR}/../flask-dashboard"
+sudo mkdir -p "$DASHBOARD_DST"
+sudo cp "$DASHBOARD_SRC"/*.html "$DASHBOARD_DST/"
+sudo cp "$DASHBOARD_SRC"/*.js "$DASHBOARD_DST/"
+sudo chown -R $(logname):$(logname) "$DASHBOARD_DST"
+echo "  ✓ File HTML copiati in ${DASHBOARD_DST}"
 
 # =============================================================================
 # Sostituisci placeholder nei file HTML
