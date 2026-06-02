@@ -25,7 +25,7 @@ def index():
 def stats():
     db = get_db()
     total = db.execute("SELECT COUNT(*) FROM packets WHERE crc_ok=1 AND msg_type='RX' AND replace(timestamp,'T',' ') >= datetime('now', '+2 hours', 'start of day', '-2 hours')").fetchone()[0]
-    unique = db.execute("SELECT COUNT(DISTINCT callsign) FROM packets WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL AND callsign != 'CALLSIGN_PLACEHOLDER' AND replace(timestamp,'T',' ') >= datetime('now', '+2 hours', 'start of day', '-2 hours')").fetchone()[0]
+    unique = db.execute("SELECT COUNT(DISTINCT callsign) FROM packets WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL AND callsign != 'IU5MGF-10' AND replace(timestamp,'T',' ') >= datetime('now', '+2 hours', 'start of day', '-2 hours')").fetchone()[0]
     best = db.execute("SELECT callsign, MAX(distance) FROM packets WHERE crc_ok=1 AND msg_type='RX' AND distance IS NOT NULL AND path NOT LIKE '%*%' AND replace(timestamp,'T',' ') >= datetime('now', '+2 hours', 'start of day', '-2 hours')").fetchone()
     rssi_avg = db.execute("SELECT AVG(rssi) FROM packets WHERE crc_ok=1 AND msg_type='RX' AND rssi IS NOT NULL AND replace(timestamp,'T',' ') >= datetime('now', '+2 hours', 'start of day', '-2 hours')").fetchone()[0]
     crc_errors = db.execute("SELECT COUNT(*) FROM packets WHERE crc_ok=0 AND replace(timestamp,'T',' ') >= datetime('now', '+2 hours', 'start of day', '-2 hours')").fetchone()[0]
@@ -35,7 +35,7 @@ def stats():
 @app.route("/api/packets")
 def packets():
     db = get_db()
-    rows = db.execute("SELECT timestamp, callsign, path, rssi, snr, distance, comment FROM packets WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL AND callsign != 'CALLSIGN_PLACEHOLDER' ORDER BY id DESC LIMIT 50").fetchall()
+    rows = db.execute("SELECT timestamp, callsign, path, rssi, snr, distance, comment FROM packets WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL AND callsign != 'IU5MGF-10' ORDER BY id DESC LIMIT 50").fetchall()
     db.close()
     result = []
     for r in rows:
@@ -50,7 +50,7 @@ def packets():
 @app.route("/api/top_stations")
 def top_stations():
     db = get_db()
-    rows = db.execute("SELECT callsign, COUNT(*) as cnt, MAX(distance) as max_dist, AVG(rssi) as avg_rssi FROM packets WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL AND callsign != 'CALLSIGN_PLACEHOLDER' AND path NOT LIKE '%*%' AND replace(timestamp,'T',' ') >= datetime('now', '+2 hours', 'start of day', '-2 hours') GROUP BY callsign ORDER BY cnt DESC LIMIT 10").fetchall()
+    rows = db.execute("SELECT callsign, COUNT(*) as cnt, MAX(distance) as max_dist, AVG(rssi) as avg_rssi FROM packets WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL AND callsign != 'IU5MGF-10' AND path NOT LIKE '%*%' AND replace(timestamp,'T',' ') >= datetime('now', '+2 hours', 'start of day', '-2 hours') GROUP BY callsign ORDER BY cnt DESC LIMIT 10").fetchall()
     db.close()
     return jsonify([{"callsign": r["callsign"], "count": r["cnt"], "max_distance": round(r["max_dist"], 1) if r["max_dist"] else 0, "avg_rssi": round(r["avg_rssi"], 1) if r["avg_rssi"] else 0} for r in rows])
 
@@ -71,13 +71,13 @@ def map_data():
         SELECT callsign, lat, lon, rssi, distance, timestamp, path
         FROM packets
         WHERE crc_ok=1 AND msg_type='RX'
-        AND callsign IS NOT NULL AND callsign != 'CALLSIGN_PLACEHOLDER'
+        AND callsign IS NOT NULL AND callsign != 'IU5MGF-10'
         AND lat IS NOT NULL AND lon IS NOT NULL
         AND replace(timestamp, 'T', ' ') >= datetime('now', '-60 minutes')
         AND id IN (
             SELECT MAX(id) FROM packets
             WHERE crc_ok=1 AND msg_type='RX'
-            AND callsign IS NOT NULL AND callsign != 'CALLSIGN_PLACEHOLDER'
+            AND callsign IS NOT NULL AND callsign != 'IU5MGF-10'
             AND lat IS NOT NULL AND lon IS NOT NULL
             AND replace(timestamp, 'T', ' ') >= datetime('now', '-60 minutes')
             GROUP BY callsign
@@ -158,7 +158,7 @@ def heatmap():
 @app.route("/api/top_stations_digi")
 def top_stations_digi():
     db = get_db()
-    rows = db.execute("SELECT callsign, COUNT(*) as cnt, MAX(distance) as max_dist, AVG(rssi) as avg_rssi FROM packets WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL AND callsign != 'CALLSIGN_PLACEHOLDER' AND path LIKE '%*%' AND replace(timestamp,'T',' ') >= datetime('now', '+2 hours', 'start of day', '-2 hours') GROUP BY callsign ORDER BY cnt DESC LIMIT 10").fetchall()
+    rows = db.execute("SELECT callsign, COUNT(*) as cnt, MAX(distance) as max_dist, AVG(rssi) as avg_rssi FROM packets WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL AND callsign != 'IU5MGF-10' AND path LIKE '%*%' AND replace(timestamp,'T',' ') >= datetime('now', '+2 hours', 'start of day', '-2 hours') GROUP BY callsign ORDER BY cnt DESC LIMIT 10").fetchall()
     db.close()
     return jsonify([{"callsign": r["callsign"], "count": r["cnt"], "max_distance": round(r["max_dist"], 1) if r["max_dist"] else 0, "avg_rssi": round(r["avg_rssi"], 1) if r["avg_rssi"] else 0} for r in rows])
 
@@ -208,7 +208,7 @@ def stations_summary():
 def igate_beacon():
     db = get_db()
     row = db.execute("""SELECT timestamp FROM packets
-        WHERE callsign='CALLSIGN_PLACEHOLDER' AND msg_type='RX'
+        WHERE callsign='IU5MGF-10' AND msg_type='RX'
         ORDER BY id DESC LIMIT 1""").fetchone()
     db.close()
     if row:
@@ -298,20 +298,13 @@ def reboot():
     from flask import request
     password = request.json.get("password", "")
     target = request.json.get("target", "server")
-    if password != "REBOOT_PWD_PLACEHOLDER":
+    if password != "raspberry":
         return jsonify({"ok": False, "msg": "Password errata"})
-    # verifica password
-    try:
-        import subprocess as sp
-        result = sp.run(["sudo", "-S", "true"], input=password+"\n", capture_output=True, text=True)
-        if result.returncode != 0:
-            return jsonify({"ok": False, "msg": "Password errata"})
-    except:
         return jsonify({"ok": False, "msg": "Errore verifica password"})
     if target == "igate":
         try:
             import requests as req
-            req.post("http://IGATE_IP_PLACEHOLDER/action?type=reboot", timeout=5)
+            req.post("http://192.168.2.10/action?type=reboot", timeout=5)
             return jsonify({"ok": True, "msg": "iGate riavviato"})
         except Exception as e:
             if "Connection" in str(e) or "reset" in str(e).lower() or "RemoteDisconnected" in str(e):

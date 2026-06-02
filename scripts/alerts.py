@@ -5,8 +5,8 @@ import subprocess
 import pytz
 from datetime import datetime, timezone, timedelta
 
-ALERT_TOKEN = "ALERT_TOKEN_PLACEHOLDER"
-CHAT_ID = "CHAT_ID_PLACEHOLDER"
+ALERT_TOKEN = "8627367196:AAG9We91Ds0lh7nWVbPBV1B8fpYmKZzZ5XU"
+CHAT_ID = "443526140"
 DB_PATH = "/mnt/ssd/radio/data/aprs.db"
 ROME = pytz.timezone("Europe/Rome")
 
@@ -59,7 +59,7 @@ def send_alert(msg):
 
 def reboot_igate():
     try:
-        requests.get("http://IGATE_IP_PLACEHOLDER/action?type=reboot", timeout=5)
+        requests.get("http://192.168.2.10/action?type=reboot", timeout=5)
         print("Reboot iGate inviato", flush=True)
     except Exception as e:
         print(f"Reboot iGate error: {e}", flush=True)
@@ -93,7 +93,7 @@ def check_silence():
             """SELECT MAX(timestamp) FROM packets
                WHERE crc_ok=1 AND msg_type='RX'
                AND callsign IS NOT NULL
-               AND callsign != 'CALLSIGN_PLACEHOLDER'"""
+               AND callsign != 'IU5MGF-10'"""
         ).fetchone()
         db.close()
 
@@ -140,7 +140,7 @@ def check_igate():
         db = sqlite3.connect(DB_PATH)
         row = db.execute(
             """SELECT MAX(timestamp) FROM packets
-               WHERE callsign='CALLSIGN_PLACEHOLDER'"""
+               WHERE callsign='IU5MGF-10'"""
         ).fetchone()
         db.close()
 
@@ -151,23 +151,23 @@ def check_igate():
             if minutes_ago >= IGATE_OFFLINE_MINUTES and not alert_state["igate_offline"]:
                 send_alert(
                     f"📡 <b>ALERT — iGate offline</b>\n"
-                    f"CALLSIGN_PLACEHOLDER non trasmette da <b>{int(minutes_ago)} minuti</b>\n"
+                    f"IU5MGF-10 non trasmette da <b>{int(minutes_ago)} minuti</b>\n"
                     f"⏱ {datetime.now(ROME).strftime('%H:%M')}"
                 )
                 print(f"ALERT: iGate offline da {int(minutes_ago)} min", flush=True)
                 alert_state["igate_offline"] = True
                 save_alert_state()
-                log_event("IGATE_OFFLINE", f"CALLSIGN_PLACEHOLDER non trasmette da {int(minutes_ago)} minuti")
+                log_event("IGATE_OFFLINE", f"IU5MGF-10 non trasmette da {int(minutes_ago)} minuti")
             elif minutes_ago < IGATE_OFFLINE_MINUTES and alert_state["igate_offline"]:
                 send_alert(
                     f"✅ <b>RIPRISTINO — iGate online</b>\n"
-                    f"CALLSIGN_PLACEHOLDER ha ripreso a trasmettere\n"
+                    f"IU5MGF-10 ha ripreso a trasmettere\n"
                     f"⏱ {datetime.now(ROME).strftime('%H:%M')}"
                 )
                 print("RIPRISTINO: iGate online", flush=True)
                 alert_state["igate_offline"] = False
                 save_alert_state()
-                log_event("IGATE_ONLINE", "CALLSIGN_PLACEHOLDER ha ripreso a trasmettere")
+                log_event("IGATE_ONLINE", "IU5MGF-10 ha ripreso a trasmettere")
     except Exception as e:
         print(f"iGate check error: {e}", flush=True)
 
@@ -203,7 +203,7 @@ def check_battery():
 print("Avvio alerts.py", flush=True)
 log_event("AVVIO", "Sistema alert avviato")
 send_alert(
-    f"🔔 <b>Sistema alert CALLSIGN_PLACEHOLDER attivo</b>\n"
+    f"🔔 <b>Sistema alert IU5MGF-10 attivo</b>\n"
     f"⏱ {datetime.now(ROME).strftime('%H:%M')}"
 )
 

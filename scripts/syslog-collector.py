@@ -161,7 +161,7 @@ def main():
             )
             db.commit()
             db.close()
-            if callsign and callsign != 'CALLSIGN_PLACEHOLDER' and msg_type == 'RX' and crc_ok == 1:
+            if callsign and callsign != 'IU5MGF-10' and msg_type == 'RX' and crc_ok == 1:
                 update_station(callsign, ts, distance, rssi, lat, lon, path)
 
 if __name__ == "__main__":

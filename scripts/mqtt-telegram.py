@@ -1,3 +1,4 @@
+import re
 import sqlite3
 import requests
 import time
@@ -6,10 +7,12 @@ import pytz
 import os
 from datetime import datetime, timezone, timedelta
 
-BOT_TOKEN = "BOT_TOKEN_PLACEHOLDER"
-CHAT_ID = "CHAT_ID_PLACEHOLDER"
+BOT_TOKEN = "8690398015:AAHr3NGhpPuhCj_45ycve0CAaKYdJSu2VZ4"
+CHAT_ID = "443526140"
 DB_PATH = "/mnt/ssd/radio/data/aprs.db"
 POLL_INTERVAL = 30
+
+
 ROME = pytz.timezone("Europe/Rome")
 
 def now_rome():
@@ -68,7 +71,7 @@ def poll_packets():
         rows = db.execute(
             """SELECT id, timestamp, callsign, path, rssi, snr, distance, comment
                FROM packets WHERE id > ? AND crc_ok=1 AND msg_type='RX'
-               AND callsign IS NOT NULL AND callsign != 'CALLSIGN_PLACEHOLDER'
+               AND callsign IS NOT NULL AND callsign != 'IU5MGF-10'
                ORDER BY id ASC""",
             (last_id,)
         ).fetchall()
@@ -86,7 +89,7 @@ def poll_packets():
             dist_str = f"{distance} km" if distance else "-"
             digipeated = " \u2605" if path and "*" in path else ""
             msg_text = (
-                "\U0001f534 LoRa APRS CALLSIGN_PLACEHOLDER\n"
+                "\U0001f534 LoRa APRS IU5MGF-10\n"
                 + f"\U0001f4e1 {callsign}{digipeated}\n"
                 + f"\U0001f4f6 RSSI: <b>{rssi_str}</b>  SNR: <b>{snr_str}</b>\n"
                 + f"\U0001f4cf Distanza: {dist_str}\n"
@@ -126,7 +129,7 @@ def daily_report():
         db.row_factory = sqlite3.Row
         row = db.execute("SELECT * FROM daily_stats WHERE date=?", (yesterday,)).fetchone()
         top5 = db.execute("""SELECT callsign, COUNT(*) as cnt FROM packets
-            WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL AND callsign != 'CALLSIGN_PLACEHOLDER'
+            WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL AND callsign != 'IU5MGF-10'
             AND path NOT LIKE '%*%'
             AND replace(timestamp,'T',' ') >= datetime(?, '-2 hours')
             AND replace(timestamp,'T',' ') < datetime(?, '+22 hours')
@@ -143,7 +146,7 @@ def daily_report():
     best_str = f"{row['best_callsign']} - {row['best_distance']} km" if row['best_callsign'] else "-"
     peak_str = f"{row['peak_hour']}:00" if row['peak_hour'] else "-"
     msg = (
-        f"\U0001f4ca <b>CALLSIGN_PLACEHOLDER - Report {date_str}</b>\n\n"
+        f"\U0001f4ca <b>IU5MGF-10 - Report {date_str}</b>\n\n"
         + f"\U0001f4e6 Pacchetti totali: <b>{row['total_packets']}</b>\n"
         + f"\U0001f4f6 RF diretta: <b>{row['total_rf']}</b> | Digipeated: <b>{row['total_digi']}</b>\n"
         + f"\U0001f4e1 Stazioni uniche: <b>{row['unique_stations']}</b>\n"
@@ -212,7 +215,7 @@ def system_report():
             + f"\U0001f321 Temperatura: <b>{temp}</b>\n"
             + f"\U0001f4be RAM: <b>{ram_used}MB / {ram_total}MB ({ram_perc}%)</b>\n"
             + f"\U0001f4bd SSD: <b>{disk_str}</b>\n"
-            + f"\u26a1 Uptime: <b>{uptime}</b>"
+            + f"\u26a1 Uptime: <b>{uptime}</b>\n"
         )
         send_telegram(msg)
         print(f"Report sistema inviato: {now}", flush=True)
@@ -259,7 +262,7 @@ def check_missed_report():
 print(f"Ultimo ID nel DB: {last_id}", flush=True)
 
 send_telegram(
-    "\u2705 <b>CALLSIGN_PLACEHOLDER sistema avviato</b>\n"
+    "\u2705 <b>IU5MGF-10 sistema avviato</b>\n"
     + "\U0001f5a5 RPi 5 online\n"
     + f"\u23f1 {now_rome().strftime('%H:%M')}"
 )

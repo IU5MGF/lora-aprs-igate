@@ -1,0 +1,17 @@
+config.py
+/usr/local/lib/lora-aprs/config.py
+*.json
+last_notified_id
+last_report_sent
+*.log
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+*.db
+*.db-shm
+*.db-wal
+*.bak
+*.gz
+.DS_Store
+Thumbs.db

@@ -20,8 +20,8 @@ def compute_day(date_str):
     total = db.execute("SELECT COUNT(*) FROM packets WHERE crc_ok=1 AND msg_type='RX' AND timestamp >= ? AND timestamp < ?", (ts_start, ts_end)).fetchone()[0]
     total_rf = db.execute("SELECT COUNT(*) FROM packets WHERE crc_ok=1 AND msg_type='RX' AND path NOT LIKE '%*%' AND timestamp >= ? AND timestamp < ?", (ts_start, ts_end)).fetchone()[0]
     total_digi = db.execute("SELECT COUNT(*) FROM packets WHERE crc_ok=1 AND msg_type='RX' AND path LIKE '%*%' AND timestamp >= ? AND timestamp < ?", (ts_start, ts_end)).fetchone()[0]
-    unique = db.execute("SELECT COUNT(DISTINCT callsign) FROM packets WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL AND callsign != 'CALLSIGN_PLACEHOLDER' AND timestamp >= ? AND timestamp < ?", (ts_start, ts_end)).fetchone()[0]
-    best = db.execute("SELECT callsign, MAX(distance) FROM packets WHERE crc_ok=1 AND msg_type='RX' AND distance IS NOT NULL AND path NOT LIKE '%*%' AND callsign != 'CALLSIGN_PLACEHOLDER' AND timestamp >= ? AND timestamp < ?", (ts_start, ts_end)).fetchone()
+    unique = db.execute("SELECT COUNT(DISTINCT callsign) FROM packets WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL AND callsign != 'IU5MGF-10' AND timestamp >= ? AND timestamp < ?", (ts_start, ts_end)).fetchone()[0]
+    best = db.execute("SELECT callsign, MAX(distance) FROM packets WHERE crc_ok=1 AND msg_type='RX' AND distance IS NOT NULL AND path NOT LIKE '%*%' AND callsign != 'IU5MGF-10' AND timestamp >= ? AND timestamp < ?", (ts_start, ts_end)).fetchone()
     rssi_avg = db.execute("SELECT AVG(rssi) FROM packets WHERE crc_ok=1 AND msg_type='RX' AND rssi IS NOT NULL AND timestamp >= ? AND timestamp < ?", (ts_start, ts_end)).fetchone()[0]
     crc = db.execute("SELECT COUNT(*) FROM packets WHERE crc_ok=0 AND timestamp >= ? AND timestamp < ?", (ts_start, ts_end)).fetchone()[0]
     peak = db.execute("SELECT strftime('%H', timestamp) as hr, COUNT(*) as cnt FROM packets WHERE crc_ok=1 AND msg_type='RX' AND timestamp >= ? AND timestamp < ? GROUP BY hr ORDER BY cnt DESC LIMIT 1", (ts_start, ts_end)).fetchone()
