@@ -71,6 +71,16 @@ echo -e "${CYAN}--- Posizione iGate ---${NC}"
 LATITUDE=$(ask "Latitudine decimale (es. 43.68047)")
 LONGITUDE=$(ask "Longitudine decimale (es. 11.52987)")
 
+# Geocoding inverso
+echo ""
+echo -e "${GREEN}Ricerca citta dalle coordinate...${NC}"
+LOCATION=$(curl -s "https://nominatim.openstreetmap.org/reverse?lat=${LATITUDE}&lon=${LONGITUDE}&format=json" 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['address'].get('city') or d['address'].get('town') or d['address'].get('village',''))" 2>/dev/null)
+if [ -z "$LOCATION" ]; then
+    LOCATION=$(ask "Citta non trovata, inserisci manualmente")
+else
+    echo -e "${GREEN}  Citta trovata: ${LOCATION}${NC}"
+fi
+
 echo ""
 echo -e "${CYAN}--- Storage ---${NC}"
 HAS_SSD=$(ask_yn "SSD presente?" "s")
@@ -262,7 +272,7 @@ LOCATION="${LATITUDE},${LONGITUDE}"
 for f in "$DASHBOARD_DIR"/*.html; do
     sed -i "s|CALLSIGN_PLACEHOLDER|${CALLSIGN}|g" "$f"
     sed -i "s|LOCATION_PLACEHOLDER|${LOCATION}|g" "$f"
-    sed -i "s|Reggello|${CALLSIGN}|g" "$f"
+    sed -i "s|Reggello|${LOCATION}|g" "$f"
     echo "  ✓ $(basename $f)"
 done
 
