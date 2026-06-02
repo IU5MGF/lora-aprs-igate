@@ -286,9 +286,7 @@ echo "  ✓ File HTML copiati in ${DASHBOARD_DST}"
 # =============================================================================
 echo ""
 echo -e "${GREEN}Configurazione dashboard HTML...${NC}"
-DASHBOARD_DIR="$(dirname $0)/dashboard"
-LOCATION="${LATITUDE},${LONGITUDE}"
-for f in "$DASHBOARD_DIR"/*.html; do
+for f in "$DASHBOARD_DST"/*.html; do
     sed -i "s|CALLSIGN_PLACEHOLDER|${CALLSIGN}|g" "$f"
     sed -i "s|LOCATION_PLACEHOLDER|${LOCATION}|g" "$f"
     sed -i "s|Reggello|${LOCATION}|g" "$f"
