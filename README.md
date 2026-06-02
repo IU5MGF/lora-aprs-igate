@@ -24,6 +24,72 @@ Software completo per un iGate LoRa APRS basato su Raspberry Pi, con notifiche T
 | Storage | SSD via USB (opzionale ma consigliato) |
 | Display | OLED SSD1306 I2C 128x64 (opzionale) |
 
+## Getting Started
+
+**Cosa serve prima di iniziare:**
+- Raspberry Pi 4 o 5 con Raspberry Pi OS
+- LilyGo T3 v1.6.1 con firmware CA2RXU configurato
+- Un bot Telegram (creato con @BotFather) e il tuo Chat ID (da @userinfobot)
+
+**Passo 1 — Configura il syslog nel firmware CA2RXU**
+
+Nel pannello web del LilyGo imposta:
+
+    Syslog Server IP: IP del tuo Raspberry Pi
+    Syslog Port: 1514
+
+**Passo 2 — Installa i prerequisiti sul Raspberry Pi**
+
+    sudo apt update
+    sudo apt install -y mosquitto mosquitto-clients sqlite3 git
+    sudo systemctl enable mosquitto
+
+**Passo 3 — Clona il repository**
+
+    git clone https://github.com/IU5MGF/lora-aprs-igate.git
+    cd lora-aprs-igate
+    chmod +x install.sh
+
+**Passo 4 — Avvia l'installer interattivo**
+
+    ./install.sh
+
+L'installer chiederà uno per uno:
+- Callsign iGate (es. IZ5XXX-10)
+- IP del LilyGo (es. 192.168.1.50)
+- Password per il reboot dalla dashboard
+- Token bot Telegram notifiche
+- Chat ID Telegram notifiche
+- Stesso bot per gli alert? (s/n)
+- Latitudine e longitudine della stazione
+- Hai un SSD collegato? (s/n)
+- Hai un display OLED? (s/n)
+- Retention DB in giorni (default 30)
+- Timezone (default Europe/Rome)
+
+**Passo 5 — Verifica i servizi**
+
+    sudo systemctl status syslog-collector
+    sudo systemctl status mqtt-telegram
+    sudo systemctl status alerts
+    sudo systemctl status flask-dashboard
+
+Tutti devono mostrare **active (running)**.
+
+**Passo 6 — Accedi alla dashboard**
+
+Apri il browser su un PC della stessa rete:
+
+    http://IP_RASPBERRY:5000
+
+## Cosa aspettarsi
+
+- Ogni pacchetto ricevuto → notifica Telegram immediata
+- Ogni mattina alle 08:00 → report giornaliero RF/DIGI
+- Ogni 2 ore → report sistema con temperatura, RAM, SSD, uptime
+- Silenzio radio da 60 minuti → alert Telegram
+- Silenzio radio da 120 minuti → reboot automatico iGate e RPi
+
 ## Struttura repository
 
     lora-aprs-igate/
@@ -39,22 +105,6 @@ Software completo per un iGate LoRa APRS basato su Raspberry Pi, con notifiche T
     │   ├── flask-dashboard.py
     │   ├── mqtt-watchdog.sh
     │   └── oled.py
-
-## Installazione
-
-    git clone https://github.com/IU5MGF/lora-aprs-igate.git
-    cd lora-aprs-igate
-    chmod +x install.sh
-    ./install.sh
-
-L'installer chiederà: callsign, IP iGate, token Telegram, coordinate GPS, presenza SSD e OLED, retention DB, timezone.
-
-## Configurazione iGate (firmware CA2RXU)
-
-Nel firmware CA2RXU abilita il syslog verso l'IP del Raspberry Pi:
-
-    Syslog Server IP: 192.168.x.x
-    Syslog Port: 1514
 
 ## Servizi systemd
 
