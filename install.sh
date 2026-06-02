@@ -160,6 +160,28 @@ CONFEOF
 
 echo -e "${GREEN}config.py scritto in ${CONFIG_PATH}${NC}"
 
+# Genera .env
+ENV_PATH="/usr/local/lib/lora-aprs/.env"
+sudo tee "$ENV_PATH" > /dev/null << ENVEOF
+CALLSIGN=${CALLSIGN}
+IGATE_IP=${IGATE_IP}
+IGATE_REBOOT_PW=${IGATE_REBOOT_PW}
+BOT_TOKEN_NOTIFY=${BOT_TOKEN_NOTIFY}
+CHAT_ID_NOTIFY=${CHAT_ID_NOTIFY}
+BOT_TOKEN_ALERT=${BOT_TOKEN_ALERT}
+CHAT_ID_ALERT=${CHAT_ID_ALERT}
+LATITUDE=${LATITUDE}
+LONGITUDE=${LONGITUDE}
+LOCATION=${LOCATION}
+HAS_SSD=${HAS_SSD}
+SSD_MOUNT=${SSD_MOUNT}
+HAS_OLED=${HAS_OLED}
+OLED_I2C_ADDR=${OLED_I2C_ADDR}
+DB_RETENTION_DAYS=${DB_RETENTION}
+TIMEZONE=${TIMEZONE}
+ENVEOF
+echo -e "${GREEN}.env scritto in ${ENV_PATH}${NC}"
+
 # =============================================================================
 # Configura mosquitto
 # =============================================================================
