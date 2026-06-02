@@ -253,6 +253,20 @@ CRONEOF
 echo "  ✓ Crontab configurato"
 
 # =============================================================================
+# Sostituisci placeholder nei file HTML
+# =============================================================================
+echo ""
+echo -e "${GREEN}Configurazione dashboard HTML...${NC}"
+DASHBOARD_DIR="$(dirname $0)/dashboard"
+LOCATION="${LATITUDE},${LONGITUDE}"
+for f in "$DASHBOARD_DIR"/*.html; do
+    sed -i "s|CALLSIGN_PLACEHOLDER|${CALLSIGN}|g" "$f"
+    sed -i "s|LOCATION_PLACEHOLDER|${LOCATION}|g" "$f"
+    sed -i "s|Reggello|${CALLSIGN}|g" "$f"
+    echo "  ✓ $(basename $f)"
+done
+
+# =============================================================================
 # Fine
 # =============================================================================
 echo ""
