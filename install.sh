@@ -223,6 +223,8 @@ After=network.target
 
 [Service]
 ExecStart=${exec}
+User=$(logname)
+Environment=PYTHONPATH=/usr/local/lib/lora-aprs
 Restart=always
 RestartSec=10
 StandardOutput=journal
