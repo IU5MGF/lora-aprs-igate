@@ -161,7 +161,9 @@ fi
 echo ""
 echo -e "${GREEN}Creazione directory dati in ${DATA_DIR}...${NC}"
 sudo mkdir -p "$DATA_DIR"
-sudo chown -R $USER:$USER "$(dirname $DATA_DIR)" 2>/dev/null || true
+sudo mkdir -p "$DATA_DIR"
+    sudo chown -R $(logname):$(logname) "$DATA_DIR" 2>/dev/null || true
+    sudo chmod 755 "$DATA_DIR"
 
 # =============================================================================
 # Copia script
