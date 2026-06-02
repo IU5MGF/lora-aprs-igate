@@ -1,10 +1,10 @@
 #!/bin/bash
-# ============================================
-# LoRa APRS iGate - Script di installazione
-# CA2RXU + RPi + Dashboard Web + Telegram
-# ============================================
+# =============================================================================
+# install.sh — Installer interattivo LoRa APRS iGate
+# =============================================================================
 
 set -e
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -12,264 +12,254 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 echo -e "${CYAN}"
-echo "================================================"
-echo "  LoRa APRS iGate - Installazione automatica"
-echo "  CA2RXU + RPi + Dashboard Web + Telegram"
-echo "================================================"
+echo "============================================="
+echo "   LoRa APRS iGate — Installer interattivo"
+echo "============================================="
 echo -e "${NC}"
 
-echo -e "${YELLOW}Inserisci i dati di configurazione:${NC}"
-echo ""
-
-read -p "Callsign iGate (es. IU5PSY-10): " CALLSIGN
-CALLSIGN_BASE=$(echo $CALLSIGN | cut -d'-' -f1)
-read -p "Passcode APRS-IS: " PASSCODE
-read -p "Latitudine (es. 43.5632): " LAT
-read -p "Longitudine (es. 11.5375): " LON
-read -p "Token bot Telegram notifiche: " BOT_TOKEN
-read -p "Token bot Telegram alert: " ALERT_TOKEN
-read -p "Chat ID Telegram: " CHAT_ID
-read -p "Password reboot dashboard (default: raspberry): " REBOOT_PWD
-REBOOT_PWD=${REBOOT_PWD:-raspberry}
-read -p "IP iGate CA2RXU (default: 192.168.2.10): " IGATE_IP
-IGATE_IP=${IGATE_IP:-192.168.2.10}
-read -p "OLED SSD1306 collegato? (si/no): " HAS_OLED
-read -p "SSD esterno montato? (si/no): " HAS_SSD
-read -p "Nome utente RPi (default: pi): " RPI_USER
-RPI_USER=${RPI_USER:-pi}
-
-if [ "$HAS_SSD" = "si" ]; then
-    DATA_PATH="/mnt/ssd/radio"
-else
-    DATA_PATH="/home/${RPI_USER}/radio"
-fi
-
-echo ""
-echo -e "${YELLOW}Riepilogo:${NC}"
-echo "  Callsign:  $CALLSIGN"
-echo "  Posizione: $LAT, $LON"
-echo "  iGate IP:  $IGATE_IP"
-echo "  Storage:   $DATA_PATH"
-echo "  OLED:      $HAS_OLED"
-echo ""
-read -p "Confermi? (si/no): " CONFIRM
-if [ "$CONFIRM" != "si" ]; then
-    echo "Installazione annullata."
-    exit 1
-fi
-
-# ============================================
-# INSTALLAZIONE PACCHETTI
-# ============================================
-echo -e "${CYAN}[1/6] Aggiornamento sistema...${NC}"
-sudo apt-get update -q
-sudo apt-get upgrade -y -q
-
-echo -e "${CYAN}[2/6] Installazione pacchetti...${NC}"
-sudo apt-get install -y -q \
-    python3 python3-pip \
-    mosquitto mosquitto-clients \
-    sqlite3 curl wget git
-
-echo -e "${CYAN}[3/6] Installazione librerie Python...${NC}"
-sudo pip3 install --break-system-packages \
-    flask pytz requests
-
-if [ "$HAS_OLED" = "si" ]; then
-    sudo pip3 install --break-system-packages \
-        luma.oled luma.core pillow
-    sudo raspi-config nonint do_i2c 0
-    echo -e "${GREEN}I2C abilitato${NC}"
-fi
-
-sudo systemctl enable mosquitto
-sudo systemctl start mosquitto
-
-# ============================================
-# STRUTTURA CARTELLE E DATABASE
-# ============================================
-echo -e "${CYAN}[4/6] Creazione struttura...${NC}"
-
-sudo mkdir -p ${DATA_PATH}/data
-sudo mkdir -p ${DATA_PATH}/flask-dashboard
-sudo mkdir -p ${DATA_PATH}/backup
-sudo chown -R ${RPI_USER}:${RPI_USER} ${DATA_PATH}
-
-if [ "$HAS_SSD" = "si" ]; then
-    sudo mkdir -p /mnt/ssd/oled
-    sudo chown -R ${RPI_USER}:${RPI_USER} /mnt/ssd/oled
-fi
-
-sqlite3 ${DATA_PATH}/data/aprs.db "
-CREATE TABLE IF NOT EXISTS packets (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    timestamp TEXT, msg_type TEXT, callsign TEXT, path TEXT,
-    crc_ok INTEGER, rssi REAL, snr REAL, freq_err REAL,
-    distance REAL, lat REAL, lon REAL, comment TEXT, raw TEXT, voltage REAL
-);
-CREATE TABLE IF NOT EXISTS stations (
-    callsign TEXT PRIMARY KEY,
-    first_seen TEXT, last_seen TEXT, total_packets INTEGER DEFAULT 0,
-    max_distance REAL, max_distance_date TEXT,
-    best_rssi REAL, last_rssi REAL, last_lat REAL, last_lon REAL, last_path TEXT
-);
-CREATE TABLE IF NOT EXISTS daily_stats (
-    date TEXT PRIMARY KEY, total_packets INTEGER, total_rf INTEGER,
-    total_digi INTEGER, unique_stations INTEGER, best_distance REAL,
-    best_callsign TEXT, rssi_avg REAL, crc_errors INTEGER, peak_hour TEXT
-);
-CREATE TABLE IF NOT EXISTS system_stats (
-    id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp TEXT,
-    cpu_temp REAL, ram_used INTEGER, ram_total INTEGER,
-    disk_used INTEGER, disk_total INTEGER, uptime_seconds INTEGER,
-    cpu_perc REAL, cpu_freq INTEGER, net_rx INTEGER, net_tx INTEGER
-);
-CREATE TABLE IF NOT EXISTS events (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    timestamp TEXT, type TEXT, message TEXT
-);
-"
-
-echo "0" > ${DATA_PATH}/data/last_notified_id
-echo '{"silence":false,"igate_offline":false,"battery_low":false,"containers":{}}' > ${DATA_PATH}/data/alert_state.json
-echo -e "${GREEN}Struttura creata${NC}"
-
-# ============================================
-# DOWNLOAD FILE DA GITHUB
-# ============================================
-echo -e "${CYAN}[5/6] Download file da GitHub...${NC}"
-
-REPO="https://raw.githubusercontent.com/IU5MGF/lora-aprs-igate/main"
-SCRIPTS_DIR="/usr/local/bin"
-DASHBOARD_DIR="${DATA_PATH}/flask-dashboard"
-
-# funzione download e sostituzione variabili
-install_file() {
-    local src=$1
-    local dst=$2
-    curl -sSL "${REPO}/${src}" -o "${dst}"
-    sed -i "s/CALLSIGN_PLACEHOLDER/${CALLSIGN}/g" "${dst}"
-    sed -i "s/BOT_TOKEN_PLACEHOLDER/${BOT_TOKEN}/g" "${dst}"
-    sed -i "s/ALERT_TOKEN_PLACEHOLDER/${ALERT_TOKEN}/g" "${dst}"
-    sed -i "s/CHAT_ID_PLACEHOLDER/${CHAT_ID}/g" "${dst}"
-    sed -i "s/IGATE_IP_PLACEHOLDER/${IGATE_IP}/g" "${dst}"
-    sed -i "s/REBOOT_PWD_PLACEHOLDER/${REBOOT_PWD}/g" "${dst}"
-    sed -i "s|DATA_PATH_PLACEHOLDER|${DATA_PATH}|g" "${dst}"
-    sed -i "s/RPI_USER_PLACEHOLDER/${RPI_USER}/g" "${dst}"
-    sed -i "s/LOCATION_PLACEHOLDER/${CALLSIGN_BASE}/g" "${dst}"
+ask() {
+    local prompt="$1"
+    local default="$2"
+    local var
+    if [ -n "$default" ]; then
+        read -p "$(echo -e ${YELLOW})${prompt} [${default}]: $(echo -e ${NC})" var
+        echo "${var:-$default}"
+    else
+        read -p "$(echo -e ${YELLOW})${prompt}: $(echo -e ${NC})" var
+        echo "$var"
+    fi
 }
 
-# script Python
-for script in syslog-collector.py mqtt-telegram.py alerts.py cleanup.py daily-stats.py system-stats.py; do
-    install_file "scripts/${script}" "${SCRIPTS_DIR}/${script}"
-    chmod +x "${SCRIPTS_DIR}/${script}"
-    echo -e "  ${GREEN}✓ ${script}${NC}"
-done
+ask_yn() {
+    local prompt="$1"
+    local default="$2"
+    local var
+    while true; do
+        read -p "$(echo -e ${YELLOW})${prompt} [s/n, default: ${default}]: $(echo -e ${NC})" var
+        var="${var:-$default}"
+        case "$var" in
+            s|S|y|Y) echo "True"; return ;;
+            n|N)     echo "False"; return ;;
+            *) echo -e "${RED}Risposta non valida, usa s o n${NC}" ;;
+        esac
+    done
+}
 
-# mqtt-watchdog
-install_file "scripts/mqtt-watchdog.sh" "${SCRIPTS_DIR}/mqtt-watchdog.sh"
-chmod +x "${SCRIPTS_DIR}/mqtt-watchdog.sh"
+echo -e "${CYAN}--- Configurazione iGate ---${NC}"
+CALLSIGN=$(ask "Callsign iGate (es. IZ5XXX-10)")
+IGATE_IP=$(ask "IP locale iGate" "192.168.2.10")
+IGATE_REBOOT_PW=$(ask "Password reboot iGate" "raspberry")
 
-# flask-dashboard
-install_file "scripts/flask-dashboard.py" "${SCRIPTS_DIR}/flask-dashboard.py"
-chmod +x "${SCRIPTS_DIR}/flask-dashboard.py"
+echo ""
+echo -e "${CYAN}--- Telegram notifiche pacchetti ---${NC}"
+BOT_TOKEN_NOTIFY=$(ask "Bot Token Telegram (notifiche)")
+CHAT_ID_NOTIFY=$(ask "Chat ID Telegram (notifiche)")
 
-# file HTML dashboard
-for f in index.html map.html stations.html stats.html server.html events.html dashboard.js; do
-    install_file "dashboard/${f}" "${DASHBOARD_DIR}/${f}"
-    echo -e "  ${GREEN}✓ ${f}${NC}"
-done
+echo ""
+echo -e "${CYAN}--- Telegram alert sistema ---${NC}"
+SAME_BOT=$(ask_yn "Usare lo stesso bot anche per gli alert?" "s")
+if [ "$SAME_BOT" = "True" ]; then
+    BOT_TOKEN_ALERT="$BOT_TOKEN_NOTIFY"
+    CHAT_ID_ALERT="$CHAT_ID_NOTIFY"
+else
+    BOT_TOKEN_ALERT=$(ask "Bot Token Telegram (alert)")
+    CHAT_ID_ALERT=$(ask "Chat ID Telegram (alert)")
+fi
 
-# oled (solo se presente)
-if [ "$HAS_OLED" = "si" ]; then
-    if [ "$HAS_SSD" = "si" ]; then
-        OLED_PATH="/mnt/ssd/oled/oled.py"
+echo ""
+echo -e "${CYAN}--- Posizione iGate ---${NC}"
+LATITUDE=$(ask "Latitudine decimale (es. 43.68047)")
+LONGITUDE=$(ask "Longitudine decimale (es. 11.52987)")
+
+echo ""
+echo -e "${CYAN}--- Storage ---${NC}"
+HAS_SSD=$(ask_yn "SSD presente?" "s")
+if [ "$HAS_SSD" = "True" ]; then
+    SSD_MOUNT=$(ask "Path mount SSD" "/mnt/ssd")
+    DATA_DIR="${SSD_MOUNT}/radio/data"
+else
+    SSD_MOUNT=""
+    DATA_DIR="/home/pi/radio/data"
+fi
+
+echo ""
+echo -e "${CYAN}--- Hardware opzionale ---${NC}"
+HAS_OLED=$(ask_yn "OLED SSD1306 presente?" "n")
+if [ "$HAS_OLED" = "True" ]; then
+    OLED_I2C_ADDR=$(ask "Indirizzo I2C OLED (hex)" "0x3C")
+else
+    OLED_I2C_ADDR="0x3C"
+fi
+
+echo ""
+echo -e "${CYAN}--- Database ---${NC}"
+DB_RETENTION=$(ask "Retention pacchetti (giorni)" "30")
+
+echo ""
+echo -e "${CYAN}--- Timezone ---${NC}"
+TIMEZONE=$(ask "Timezone" "Europe/Rome")
+
+# =============================================================================
+# Genera config.py
+# =============================================================================
+echo ""
+echo -e "${GREEN}Generazione config.py...${NC}"
+
+CONFIG_PATH="/usr/local/lib/lora-aprs/config.py"
+sudo mkdir -p "$(dirname $CONFIG_PATH)"
+
+sudo tee "$CONFIG_PATH" > /dev/null << CONFEOF
+# =============================================================================
+# config.py — Generato da install.sh il $(date '+%Y-%m-%d %H:%M')
+# =============================================================================
+
+CALLSIGN        = "${CALLSIGN}"
+IGATE_IP        = "${IGATE_IP}"
+IGATE_REBOOT_PW = "${IGATE_REBOOT_PW}"
+
+BOT_TOKEN_NOTIFY = "${BOT_TOKEN_NOTIFY}"
+CHAT_ID_NOTIFY   = "${CHAT_ID_NOTIFY}"
+
+BOT_TOKEN_ALERT  = "${BOT_TOKEN_ALERT}"
+CHAT_ID_ALERT    = "${CHAT_ID_ALERT}"
+
+LATITUDE        = ${LATITUDE}
+LONGITUDE       = ${LONGITUDE}
+
+HAS_SSD         = ${HAS_SSD}
+SSD_MOUNT       = "${SSD_MOUNT}"
+DATA_DIR        = "${DATA_DIR}"
+DB_PATH         = "${DATA_DIR}/aprs.db"
+
+HAS_OLED        = ${HAS_OLED}
+OLED_I2C_ADDR   = ${OLED_I2C_ADDR}
+
+DB_RETENTION_DAYS = ${DB_RETENTION}
+
+TIMEZONE        = "${TIMEZONE}"
+
+MQTT_HOST       = "localhost"
+MQTT_PORT       = 1883
+CONFEOF
+
+echo -e "${GREEN}config.py scritto in ${CONFIG_PATH}${NC}"
+
+# =============================================================================
+# Installa dipendenze Python
+# =============================================================================
+echo ""
+echo -e "${GREEN}Installazione dipendenze Python...${NC}"
+sudo pip3 install paho-mqtt requests pytz flask --break-system-packages
+
+if [ "$HAS_OLED" = "True" ]; then
+    sudo pip3 install luma.oled pillow --break-system-packages
+fi
+
+# =============================================================================
+# Crea directory dati
+# =============================================================================
+echo ""
+echo -e "${GREEN}Creazione directory dati in ${DATA_DIR}...${NC}"
+sudo mkdir -p "$DATA_DIR"
+sudo chown -R $USER:$USER "$(dirname $DATA_DIR)" 2>/dev/null || true
+
+# =============================================================================
+# Copia script
+# =============================================================================
+echo ""
+echo -e "${GREEN}Copia script in /usr/local/bin/...${NC}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)/scripts"
+SCRIPTS="mqtt-telegram.py alerts.py cleanup.py system-stats.py daily-stats.py syslog-collector.py mqtt-watchdog.sh flask-dashboard.py"
+for s in $SCRIPTS; do
+    if [ -f "$SCRIPT_DIR/$s" ]; then
+        sudo cp "$SCRIPT_DIR/$s" "/usr/local/bin/$s"
+        sudo chmod +x "/usr/local/bin/$s"
+        echo "  ✓ $s"
     else
-        OLED_PATH="/home/${RPI_USER}/oled/oled.py"
-        mkdir -p /home/${RPI_USER}/oled
+        echo -e "  ${RED}✗ $s non trovato in $SCRIPT_DIR${NC}"
     fi
-    install_file "oled/oled.py" "${OLED_PATH}"
-    chmod +x "${OLED_PATH}"
-    echo -e "  ${GREEN}✓ oled.py${NC}"
-fi
-
-# servizi systemd
-for svc in syslog-collector mqtt-telegram alerts cleanup flask-dashboard; do
-    install_file "services/${svc}.service" "/etc/systemd/system/${svc}.service"
 done
 
-if [ "$HAS_OLED" = "si" ]; then
-    install_file "services/oled.service" "/etc/systemd/system/oled.service"
-    # aggiorna path oled nel service
-    sudo sed -i "s|/mnt/ssd/oled/oled.py|${OLED_PATH}|g" /etc/systemd/system/oled.service
+if [ "$HAS_OLED" = "True" ]; then
+    sudo mkdir -p "${SSD_MOUNT}/oled"
+    if [ -f "$SCRIPT_DIR/oled.py" ]; then
+        sudo cp "$SCRIPT_DIR/oled.py" "${SSD_MOUNT}/oled/oled.py"
+        echo "  ✓ oled.py"
+    fi
 fi
 
-echo -e "${GREEN}File installati${NC}"
+# =============================================================================
+# Installa servizi systemd
+# =============================================================================
+echo ""
+echo -e "${GREEN}Installazione servizi systemd...${NC}"
 
-# ============================================
-# AVVIO SERVIZI E CRON
-# ============================================
-echo -e "${CYAN}[6/6] Avvio servizi...${NC}"
+install_service() {
+    local name="$1"
+    local desc="$2"
+    local exec="$3"
+    sudo tee "/etc/systemd/system/${name}.service" > /dev/null << SVCEOF
+[Unit]
+Description=${desc}
+After=network.target
+
+[Service]
+ExecStart=${exec}
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+SVCEOF
+    sudo systemctl enable "$name" 2>/dev/null
+    sudo systemctl restart "$name" 2>/dev/null || true
+    echo "  ✓ ${name}.service"
+}
+
+install_service "syslog-collector" "LoRa APRS Syslog Collector"   "/usr/bin/python3 /usr/local/bin/syslog-collector.py"
+install_service "mqtt-telegram"    "LoRa APRS MQTT Telegram"      "/usr/bin/python3 /usr/local/bin/mqtt-telegram.py"
+install_service "alerts"           "LoRa APRS Alerts"             "/usr/bin/python3 /usr/local/bin/alerts.py"
+install_service "cleanup"          "LoRa APRS DB Cleanup"         "/usr/bin/python3 /usr/local/bin/cleanup.py"
+install_service "flask-dashboard"  "LoRa APRS Flask Dashboard"    "/usr/bin/python3 /usr/local/bin/flask-dashboard.py"
+
+if [ "$HAS_OLED" = "True" ]; then
+    install_service "oled" "LoRa APRS OLED Display" "/usr/bin/python3 ${SSD_MOUNT}/oled/oled.py"
+fi
 
 sudo systemctl daemon-reload
-sudo systemctl enable mosquitto syslog-collector mqtt-telegram alerts cleanup flask-dashboard
-sudo systemctl start mosquitto syslog-collector mqtt-telegram alerts cleanup flask-dashboard
 
-if [ "$HAS_OLED" = "si" ]; then
-    sudo systemctl enable oled
-    sudo systemctl start oled
-fi
+# =============================================================================
+# Crontab
+# =============================================================================
+echo ""
+echo -e "${GREEN}Configurazione crontab...${NC}"
 
-# cron
-(crontab -l 2>/dev/null; cat << CRONEOF
+(crontab -l 2>/dev/null | grep -v "lora-aprs\|mqtt-watchdog\|daily-stats\|system-stats\|backup\|reboot iGate"; cat << CRONEOF
+# lora-aprs
+0 2 * * * /bin/bash ${DATA_DIR}/../backup.sh
 */10 * * * * /usr/local/bin/mqtt-watchdog.sh
-30 3 * * * curl -s "http://${IGATE_IP}/action?type=reboot" > /dev/null 2>&1
+30 3 * * * curl -s -X POST "http://${IGATE_IP}/action?type=reboot"
 35 3 * * * sudo reboot
-1 0 * * * /usr/bin/python3 /usr/local/bin/daily-stats.py >> ${DATA_PATH}/data/daily-stats.log 2>&1
-0 3 * * * /usr/bin/python3 /usr/local/bin/daily-stats.py >> ${DATA_PATH}/data/daily-stats.log 2>&1
-*/15 * * * * /usr/bin/python3 /usr/local/bin/system-stats.py >> ${DATA_PATH}/data/system-stats.log 2>&1
+1 0 * * * /usr/bin/python3 /usr/local/bin/daily-stats.py >> ${DATA_DIR}/daily-stats.log 2>&1
+0 3 * * * /usr/bin/python3 /usr/local/bin/daily-stats.py >> ${DATA_DIR}/daily-stats.log 2>&1
+*/15 * * * * /usr/bin/python3 /usr/local/bin/system-stats.py >> ${DATA_DIR}/system-stats.log 2>&1
 CRONEOF
 ) | crontab -
 
-echo -e "${GREEN}Cron configurato${NC}"
+echo "  ✓ Crontab configurato"
 
-# ============================================
-# VERIFICA FINALE
-# ============================================
-sleep 5
+# =============================================================================
+# Fine
+# =============================================================================
 echo ""
-echo -e "${CYAN}Verifica servizi:${NC}"
-ALL_OK=true
-SERVICES="mosquitto syslog-collector mqtt-telegram alerts cleanup flask-dashboard"
-if [ "$HAS_OLED" = "si" ]; then SERVICES="$SERVICES oled"; fi
-
-for svc in $SERVICES; do
-    STATUS=$(systemctl is-active $svc)
-    if [ "$STATUS" = "active" ]; then
-        echo -e "  ${GREEN}✓ $svc${NC}"
-    else
-        echo -e "  ${RED}✗ $svc${NC}"
-        ALL_OK=false
-    fi
-done
-
+echo -e "${GREEN}============================================="
+echo " Installazione completata!"
+echo "=============================================${NC}"
 echo ""
-IP=$(hostname -I | awk '{print $1}')
-if [ "$ALL_OK" = true ]; then
-    echo -e "${GREEN}================================================${NC}"
-    echo -e "${GREEN}  Installazione completata con successo!${NC}"
-    echo -e "${GREEN}================================================${NC}"
-else
-    echo -e "${YELLOW}  Installazione completata con avvisi${NC}"
-    echo -e "${YELLOW}  Verifica i servizi in rosso${NC}"
-fi
-
+echo -e "  Dashboard:   ${CYAN}http://$(hostname -I | awk '{print $1}'):5000${NC}"
+echo -e "  Config:      ${CYAN}${CONFIG_PATH}${NC}"
+echo -e "  DB:          ${CYAN}${DATA_DIR}/aprs.db${NC}"
 echo ""
-echo -e "${CYAN}Dashboard:${NC} http://${IP}:5000"
-echo -e "${CYAN}Callsign:${NC}  ${CALLSIGN}"
-echo ""
-echo -e "${YELLOW}Prossimi passi:${NC}"
-echo "  1. Configura CA2RXU su http://${IGATE_IP}"
-echo "  2. Imposta syslog verso ${IP}:1514"
-echo "  3. Verifica: journalctl -u syslog-collector -f"
-echo ""
+echo -e "${YELLOW}Controlla i servizi con: sudo systemctl status mqtt-telegram${NC}"
