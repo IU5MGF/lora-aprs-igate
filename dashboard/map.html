@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CALLSIGN_PLACEHOLDER Mappa</title>
+<title>IU5MGF-10 Mappa</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
@@ -20,12 +20,20 @@ header{background:#0f1318;border-bottom:1px solid #1e2a35;padding:12px 24px;disp
 .stat-bar{display:flex;gap:16px;padding:8px 24px;background:#0f1318;border-bottom:1px solid #1e2a35;font-family:"Share Tech Mono",monospace;font-size:11px;color:#4a6070;flex-wrap:wrap;align-items:center}
 .toggle-btn{font-family:"Share Tech Mono",monospace;font-size:10px;padding:4px 10px;border:1px solid #1e2a35;background:transparent;color:#4a6070;cursor:pointer;border-radius:3px;letter-spacing:1px}
 .toggle-btn.active{border-color:#00d4ff;color:#00d4ff;background:rgba(0,212,255,0.1)}
-<style>.nav-dropdown{position:relative;display:inline-block}.nav-btn{font-family:"Share Tech Mono",monospace;font-size:11px;color:#00d4ff;text-decoration:none;border:1px solid #1e2a35;padding:6px 14px;letter-spacing:2px;background:transparent;cursor:pointer;display:flex;align-items:center;gap:8px}.nav-btn:hover{border-color:#00d4ff}.nav-arrow{font-size:8px;transition:transform 0.2s}.nav-dropdown.open .nav-arrow{transform:rotate(180deg)}.dropdown-menu{display:none;position:absolute;right:0;top:100%;margin-top:4px;background:#0f1318;border:1px solid #1e2a35;min-width:160px;z-index:200}.nav-dropdown.open .dropdown-menu{display:block}.dropdown-item{display:block;font-family:"Share Tech Mono",monospace;font-size:11px;color:#00d4ff;text-decoration:none;padding:8px 16px;letter-spacing:2px;white-space:nowrap;border-bottom:1px solid #1e2a35}.dropdown-item:last-child{border-bottom:none}.dropdown-item:hover{background:rgba(0,212,255,0.05)}.dropdown-item.active{color:#00ff9f}</style></style>
+<style>.nav-dropdown{position:relative;display:inline-block}.nav-btn{font-family:"Share Tech Mono",monospace;font-size:11px;color:#00d4ff;text-decoration:none;border:1px solid #1e2a35;padding:6px 14px;letter-spacing:2px;background:transparent;cursor:pointer;display:flex;align-items:center;gap:8px}.nav-btn:hover{border-color:#00d4ff}.nav-arrow{font-size:8px;transition:transform 0.2s}.nav-dropdown.open .nav-arrow{transform:rotate(180deg)}.dropdown-menu{display:none;position:absolute;right:0;top:100%;margin-top:4px;background:#0f1318;border:1px solid #1e2a35;min-width:160px;z-index:200}.nav-dropdown.open .dropdown-menu{display:block}.dropdown-item{display:block;font-family:"Share Tech Mono",monospace;font-size:11px;color:#00d4ff;text-decoration:none;padding:8px 16px;letter-spacing:2px;white-space:nowrap;border-bottom:1px solid #1e2a35}.dropdown-item:last-child{border-bottom:none}.dropdown-item:hover{background:rgba(0,212,255,0.05)}.dropdown-item.active{color:#00ff9f}
+[data-theme="light"]{
+--bg:#f0f4f8;--bg2:#e1ecf7;--bg3:#e8eef4;--border:#d0dce8;
+--accent:#0066aa;--accent2:#cc2200;--accent3:#007744;
+--text:#1a2a3a;--text-dim:#6a8090;}
+[data-theme="light"] body::before{background:none}
+[data-theme="light"] .stat-card{box-shadow:0 1px 4px rgba(0,0,0,0.1)}
+[data-theme="light"] .panel{box-shadow:0 1px 4px rgba(0,0,0,0.1)}
+[data-theme="light"] .dropdown-menu{background:#e1ecf7;border-color:#d0dce8}[data-theme="light"] .dropdown-item{color:#0066aa;border-bottom-color:#d0dce8}[data-theme="light"] .dropdown-item:hover{background:rgba(0,102,170,0.05)}[data-theme="light"] .nav-btn{color:#0066aa;border-color:#d0dce8}</style></style>
 </head>
 <body>
 <header>
   <div>
-    <div class="logo-text">CALLSIGN_PLACEHOLDER</div>
+    <div class="logo-text">IU5MGF-10</div>
     <div class="logo-sub">Mappa stazioni &middot; ultimi 60 min</div>
   </div>
   <a href="/" class="back-btn">&#8592; DASHBOARD</a>
@@ -42,12 +50,12 @@ header{background:#0f1318;border-bottom:1px solid #1e2a35;padding:12px 24px;disp
 <div id="map"></div>
 
 <script>
-const map = L.map("map").setView([43.68, 11.53], 9);
+const map = L.map("map").setView([LAT_PLACEHOLDER, LON_PLACEHOLDER], 9);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: "&copy; OpenStreetMap", maxZoom: 18
 }).addTo(map);
 
-L.marker([43.68047, 11.52987], {
+L.marker([LAT_PLACEHOLDER, LON_PLACEHOLDER], {
   icon: L.divIcon({
     className: "",
     html: "<div style='background:#00d4ff;width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 0 8px #00d4ff'></div>",
@@ -166,6 +174,22 @@ function toggleHeatmap() {
 
 loadMap();
 setInterval(loadMap, 60000);
+</script>
+
+<script>
+function applyTheme(t){
+  document.documentElement.setAttribute('data-theme', t);
+  const btn = document.getElementById('theme-btn');
+  if(btn) btn.textContent = t === 'light' ? '☾ TEMA' : '☀ TEMA';
+}
+const saved = localStorage.getItem('theme') || 'dark';
+applyTheme(saved);
+window.addEventListener('storage', function(e){
+  if(e.key === 'theme_change'){
+    const t = localStorage.getItem('theme') || 'dark';
+    applyTheme(t);
+  }
+});
 </script>
 </body>
 </html>

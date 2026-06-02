@@ -307,6 +307,8 @@ echo -e "${GREEN}Configurazione dashboard HTML...${NC}"
 for f in "$DASHBOARD_DST"/*.html; do
     sed -i "s|CALLSIGN_PLACEHOLDER|${CALLSIGN}|g" "$f"
     sed -i "s|LOCATION_PLACEHOLDER|${LOCATION}|g" "$f"
+    sed -i "s|LAT_PLACEHOLDER|${LATITUDE}|g" "$f"
+    sed -i "s|LON_PLACEHOLDER|${LONGITUDE}|g" "$f"
     sed -i "s|Reggello|${LOCATION}|g" "$f"
     echo "  ✓ $(basename $f)"
 done
