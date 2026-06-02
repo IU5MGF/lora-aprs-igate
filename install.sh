@@ -95,7 +95,7 @@ if [ "$HAS_SSD" = "True" ]; then
     DATA_DIR="${SSD_MOUNT}/radio/data"
 else
     SSD_MOUNT=""
-    DATA_DIR="/home/pi/radio/data"
+    DATA_DIR="/home/$(logname)/radio/data"
 fi
 
 echo ""
