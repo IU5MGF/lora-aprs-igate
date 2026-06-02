@@ -161,6 +161,22 @@ CONFEOF
 echo -e "${GREEN}config.py scritto in ${CONFIG_PATH}${NC}"
 
 # =============================================================================
+# Configura mosquitto
+# =============================================================================
+echo ""
+echo -e "${GREEN}Configurazione mosquitto...${NC}"
+if ! grep -q "listener 1883" /etc/mosquitto/mosquitto.conf 2>/dev/null; then
+    sudo tee /etc/mosquitto/conf.d/lora-aprs.conf > /dev/null << MQTTEOF
+listener 1883
+allow_anonymous true
+MQTTEOF
+    echo "  ✓ mosquitto configurato"
+else
+    echo "  ✓ mosquitto già configurato"
+fi
+sudo systemctl restart mosquitto
+
+# =============================================================================
 # Installa dipendenze Python
 # =============================================================================
 echo ""
