@@ -203,7 +203,8 @@ sudo systemctl restart mosquitto
 # =============================================================================
 echo ""
 echo -e "${GREEN}Installazione dipendenze Python...${NC}"
-sudo pip3 install paho-mqtt requests pytz flask --break-system-packages
+sudo apt install -y python3-pip 2>/dev/null || true
+sudo pip3 install paho-mqtt requests pytz flask --break-system-packages 2>/dev/null || python3 -m pip install paho-mqtt requests pytz flask --break-system-packages
 
 if [ "$HAS_OLED" = "True" ]; then
     sudo pip3 install luma.oled pillow --break-system-packages
