@@ -315,6 +315,42 @@ def reboot_igate_direct():
             return jsonify({"ok": True, "msg": "iGate riavviato"})
         return jsonify({"ok": False, "msg": str(e)})
 
+@app.route("/configuration.json", methods=["GET", "POST"])
+def igate_config_json_root():
+    try:
+        if request.method == "POST":
+            r = req.post(f"http://{IGATE_IP}/configuration.json",
+                        data=request.get_data(),
+                        headers={"Content-Type": request.content_type},
+                        timeout=10)
+        else:
+            r = req.get(f"http://{IGATE_IP}/configuration.json", timeout=10)
+        return r.content, r.status_code, {"Content-Type": r.headers.get("Content-Type", "application/json")}
+    except Exception as e:
+        return jsonify({"error": str(e)}), 503
+
+@app.route("/received-packets.json", methods=["GET"])
+def igate_packets_json_root():
+    try:
+        r = req.get(f"http://{IGATE_IP}/received-packets.json", timeout=10)
+        return r.content, r.status_code, {"Content-Type": r.headers.get("Content-Type", "application/json")}
+    except Exception as e:
+        return jsonify({"error": str(e)}), 503
+
+@app.route("/igate/configuration.json", methods=["GET", "POST"])
+def igate_config_json():
+    try:
+        if request.method == "POST":
+            r = req.post(f"http://{IGATE_IP}/configuration.json", 
+                        data=request.get_data(),
+                        headers={"Content-Type": request.content_type},
+                        timeout=10)
+        else:
+            r = req.get(f"http://{IGATE_IP}/configuration.json", timeout=10)
+        return r.content, r.status_code, {"Content-Type": r.headers.get("Content-Type", "application/json")}
+    except Exception as e:
+        return jsonify({"error": str(e)}), 503
+
 @app.route("/igate")
 @app.route("/igate/<path:subpath>", methods=["GET", "POST"])
 def igate_proxy(subpath=""):
@@ -335,11 +371,29 @@ def igate_proxy(subpath=""):
             except:
                 pass
             body = body.decode("utf-8", errors="ignore")
-            body = body.replace('href="/', f'href="/igate/')
-            body = body.replace('src="/', f'src="/igate/')
-            body = body.replace('action="/', f'action="/igate/')
+            body = body.replace('href="/', 'href="/igate/')
+            body = body.replace('src="/', 'src="/igate/')
+            body = body.replace('action="/', 'action="/igate/')
+            body = body.replace("fetch('/", "fetch('/igate/")
+            body = body.replace('fetch("/', 'fetch("/igate/')
+            body = body.replace("url: '/", "url: '/igate/")
+            body = body.replace('url: "/', 'url: "/igate/')
+            body = body.replace("XMLHttpRequest", "XMLHttpRequest")
+            body = body.replace("'/configuration.json'", "'/igate/configuration.json'")
+            body = body.replace('"/configuration.json"', '"/igate/configuration.json"')
+            body = body.replace("'/action'", "'/igate/action'")
+            body = body.replace('"/action"', '"/igate/action"')
             return body, r.status_code, {"Content-Type": "text/html"}
         
+        if "javascript" in content_type or subpath.endswith(".js"):
+            body = r.content
+            try:
+                import gzip
+                body = gzip.decompress(body)
+            except:
+                pass
+            body = body.decode("utf-8", errors="ignore")
+            return body, r.status_code, {"Content-Type": "application/javascript"}
         return r.content, r.status_code, {"Content-Type": content_type}
     except Exception as e:
         return f"<h1>iGate non raggiungibile</h1><p>{e}</p>", 503
