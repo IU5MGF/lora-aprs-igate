@@ -119,6 +119,8 @@ def check_silence():
                     f"\u23f1 {datetime.now(ROME).strftime('%H:%M')}"
                 )
                 log_event("REBOOT", f"Reboot automatico dopo {int(minutes_ago)} minuti di silenzio")
+                alert_state["silence"] = False
+                save_alert_state()
                 reboot_igate()
                 time.sleep(5)
                 reboot_rpi()
@@ -182,6 +184,6 @@ send_alert(
 
 while True:
     check_containers()
-    check_silence()
+    #check_silence()  # disabilitato
     check_igate()
     time.sleep(CHECK_INTERVAL)
