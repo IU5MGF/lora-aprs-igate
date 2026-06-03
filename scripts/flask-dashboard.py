@@ -305,5 +305,34 @@ def events_api():
         "time": rome_time(r["timestamp"]).strftime("%d/%m %H:%M") if rome_time(r["timestamp"]) else r["timestamp"][:16],
         "type": r["type"], "message": r["message"]} for r in rows])
 
+@app.route("/igate")
+@app.route("/igate/<path:subpath>", methods=["GET", "POST"])
+def igate_proxy(subpath=""):
+    try:
+        url = f"http://{IGATE_IP}/{subpath}"
+        if request.method == "POST":
+            r = req.post(url, data=request.get_data(), headers={"Content-Type": request.content_type}, timeout=10)
+        else:
+            r = req.get(url, params=request.args, timeout=10)
+        
+        # Riscrive i link relativi per passare attraverso il proxy
+        content_type = r.headers.get("Content-Type", "")
+        if "text/html" in content_type:
+            body = r.content
+            try:
+                import gzip
+                body = gzip.decompress(body)
+            except:
+                pass
+            body = body.decode("utf-8", errors="ignore")
+            body = body.replace('href="/', f'href="/igate/')
+            body = body.replace('src="/', f'src="/igate/')
+            body = body.replace('action="/', f'action="/igate/')
+            return body, r.status_code, {"Content-Type": "text/html"}
+        
+        return r.content, r.status_code, {"Content-Type": content_type}
+    except Exception as e:
+        return f"<h1>iGate non raggiungibile</h1><p>{e}</p>", 503
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False)
