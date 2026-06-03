@@ -299,7 +299,7 @@ echo -e "${GREEN}Configurazione crontab...${NC}"
 # lora-aprs
 0 2 * * * /bin/bash ${DATA_DIR}/../backup.sh
 */10 * * * * /usr/local/bin/mqtt-watchdog.sh
-30 3 * * * curl -s -X POST "http://${IGATE_IP}/action?type=reboot"
+30 3 * * * curl -s -X POST "http://${IGATE_IP}/action" -d "type=reboot"
 35 3 * * * sudo reboot
 1 0 * * * /usr/bin/python3 /usr/local/bin/daily-stats.py >> ${DATA_DIR}/daily-stats.log 2>&1
 0 3 * * * /usr/bin/python3 /usr/local/bin/daily-stats.py >> ${DATA_DIR}/daily-stats.log 2>&1
