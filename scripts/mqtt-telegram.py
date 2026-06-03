@@ -215,7 +215,7 @@ def system_report():
             + f"\U0001f4bd SSD: <b>{disk_str}</b>\n"
             + f"\u26a1 Uptime: <b>{uptime}</b>"
         )
-        send_telegram(msg, alert=True)
+        send_telegram(msg, alert=False)
         print(f"Report sistema inviato: {now}", flush=True)
     except Exception as e:
         print(f"System report error: {e}", flush=True)
