@@ -286,7 +286,7 @@ def reboot():
         return jsonify({"ok": False, "msg": "Password errata"})
     if target == "igate":
         try:
-            req.post(f"http://{IGATE_IP}/action?type=reboot", timeout=5)
+            req.post(f"http://{IGATE_IP}/action", data="type=reboot", timeout=5)
             return jsonify({"ok": True, "msg": "iGate riavviato"})
         except Exception as e:
             if any(x in str(e) for x in ["Connection", "reset", "RemoteDisconnected"]):
