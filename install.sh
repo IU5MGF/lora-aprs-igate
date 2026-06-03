@@ -141,6 +141,7 @@ CHAT_ID_ALERT    = "${CHAT_ID_ALERT}"
 
 LATITUDE        = ${LATITUDE}
 LONGITUDE       = ${LONGITUDE}
+LOCATION        = "${LOCATION}"
 
 HAS_SSD         = ${HAS_SSD}
 SSD_MOUNT       = "${SSD_MOUNT}"
