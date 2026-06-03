@@ -305,6 +305,16 @@ def events_api():
         "time": rome_time(r["timestamp"]).strftime("%d/%m %H:%M") if rome_time(r["timestamp"]) else r["timestamp"][:16],
         "type": r["type"], "message": r["message"]} for r in rows])
 
+@app.route("/api/reboot_igate", methods=["POST"])
+def reboot_igate_direct():
+    try:
+        r = req.post(f"http://{IGATE_IP}/action", data="type=reboot", timeout=10)
+        return jsonify({"ok": True, "msg": "iGate riavviato"})
+    except Exception as e:
+        if any(x in str(e) for x in ["Connection", "reset", "RemoteDisconnected"]):
+            return jsonify({"ok": True, "msg": "iGate riavviato"})
+        return jsonify({"ok": False, "msg": str(e)})
+
 @app.route("/igate")
 @app.route("/igate/<path:subpath>", methods=["GET", "POST"])
 def igate_proxy(subpath=""):
