@@ -108,6 +108,17 @@ else
 fi
 
 echo ""
+echo -e "${CYAN}--- MeshCom (opzionale) ---${NC}"
+HAS_MESHCOM=$(ask_yn "Hai un nodo MeshCom da integrare?" "n")
+if [ "$HAS_MESHCOM" = "True" ]; then
+    MESHCOM_IP=$(ask "IP locale nodo MeshCom" "192.168.2.12")
+    MESHCOM_CALLSIGN=$(ask "Callsign nodo MeshCom" "IU5MGF-12")
+else
+    MESHCOM_IP=""
+    MESHCOM_CALLSIGN=""
+fi
+
+echo ""
 echo -e "${CYAN}--- Database ---${NC}"
 DB_RETENTION=$(ask "Retention pacchetti (giorni)" "30")
 
@@ -157,6 +168,9 @@ TIMEZONE        = "${TIMEZONE}"
 
 MQTT_HOST       = "localhost"
 MQTT_PORT       = 1883
+HAS_MESHCOM     = ${HAS_MESHCOM}
+MESHCOM_IP      = "${MESHCOM_IP}"
+MESHCOM_CALLSIGN = "${MESHCOM_CALLSIGN}"
 CONFEOF
 
 echo -e "${GREEN}config.py scritto in ${CONFIG_PATH}${NC}"
@@ -286,6 +300,15 @@ install_service "flask-dashboard"  "LoRa APRS Flask Dashboard"    "/usr/bin/pyth
 
 if [ "$HAS_OLED" = "True" ]; then
     install_service "oled" "LoRa APRS OLED Display" "/usr/bin/python3 ${SSD_MOUNT}/oled/oled.py"
+fi
+
+if [ "$HAS_MESHCOM" = "True" ]; then
+    if [ -f "$SCRIPT_DIR/meshcom-poller.py" ]; then
+        sudo cp "$SCRIPT_DIR/meshcom-poller.py" "/usr/local/bin/meshcom-poller.py"
+        sudo chmod +x "/usr/local/bin/meshcom-poller.py"
+        echo "  ✓ meshcom-poller.py"
+    fi
+    install_service "meshcom-poller" "MeshCom WebUI Poller" "/usr/bin/python3 /usr/local/bin/meshcom-poller.py"
 fi
 
 sudo systemctl daemon-reload

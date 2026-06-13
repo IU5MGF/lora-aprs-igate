@@ -36,16 +36,25 @@ async function loadPackets(){
       const tr = document.createElement('tr');
       if(isNew) tr.classList.add('new-packet');
       tr.dataset.time = p.time;
-      const digi = (p.path && p.path.includes('*')) ? ' ★' : '';
       const rssi_str = p.rssi ? p.rssi+' dBm' : '--';
       const snr_str = p.snr ? p.snr+' dB' : '--';
       const dist_str = p.distance ? p.distance+' km' : '--';
+      let pathBadge;
+      if(p.path === 'MESHCOM')
+        pathBadge = '<span style="background:#2a1a4a;color:#bc8cff;padding:1px 6px;border-radius:3px;font-size:10px">MESHCOM</span>';
+      else if(p.path && p.path.includes('*'))
+        pathBadge = '<span style="background:#1a3a1a;color:#00ff9f;padding:1px 6px;border-radius:3px;font-size:10px">DIGI</span>';
+      else
+        pathBadge = '<span style="background:#1a2a3a;color:#00d4ff;padding:1px 6px;border-radius:3px;font-size:10px">RF</span>';
+      const callDisplay = p.path === 'MESHCOM'
+        ? '<span style="color:#bc8cff;font-weight:bold">'+p.callsign+'</span>'
+        : '<span class="callsign">'+p.callsign+'</span>';
       tr.innerHTML = '<td style="color:var(--text-dim)">'+p.time+'</td>'
-        +'<td class="callsign">'+p.callsign+digi+'</td>'
+        +'<td>'+callDisplay+'</td>'
         +'<td class="'+rssiClass(p.rssi)+'">'+rssi_str+'</td>'
         +'<td style="color:var(--text-dim)">'+snr_str+'</td>'
         +'<td>'+dist_str+'</td>'
-        +'<td style="color:var(--text-dim);font-size:10px">'+p.path+'</td>'
+        +'<td>'+pathBadge+'</td>'
         +'<td style="color:var(--text-dim);font-size:10px">'+p.comment+'</td>';
       tbody.appendChild(tr);
     });

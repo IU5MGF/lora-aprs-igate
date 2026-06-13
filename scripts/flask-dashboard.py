@@ -12,6 +12,11 @@ from config import (
     CALLSIGN, DB_PATH, TIMEZONE, DATA_DIR,
     IGATE_IP, IGATE_REBOOT_PW, HAS_SSD, SSD_MOUNT
 )
+try:
+    from config import HAS_MESHCOM, MESHCOM_CALLSIGN
+except ImportError:
+    HAS_MESHCOM = False
+    MESHCOM_CALLSIGN = ""
 
 DASHBOARD_DIR = os.path.join(os.path.dirname(DATA_DIR), "flask-dashboard")
 
@@ -72,11 +77,18 @@ def stats():
 @app.route("/api/packets")
 def packets():
     db = get_db()
-    rows = db.execute(
-        "SELECT timestamp, callsign, path, rssi, snr, distance, comment FROM packets "
-        "WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL AND callsign != ? "
-        "ORDER BY id DESC LIMIT 50", (CALLSIGN,)
-    ).fetchall()
+    rows = db.execute("""
+        SELECT timestamp, callsign, path, rssi, snr, distance, comment FROM
+        (SELECT timestamp, callsign, path, rssi, snr, distance, comment, id FROM packets
+         WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL AND callsign != ?
+         AND path != 'MESHCOM' ORDER BY id DESC LIMIT 40)
+        UNION ALL
+        SELECT timestamp, callsign, path, rssi, snr, distance, comment FROM
+        (SELECT timestamp, callsign, path, rssi, snr, distance, comment, id FROM packets
+         WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL AND callsign != ?
+         AND path = 'MESHCOM' ORDER BY id DESC LIMIT 10)
+    """, (CALLSIGN, CALLSIGN)).fetchall()
+    rows = sorted(rows, key=lambda r: r["timestamp"], reverse=True)[:50]
     db.close()
     result = []
     for r in rows:
@@ -151,7 +163,7 @@ def map_data():
     db.close()
     return jsonify([{"callsign": r["callsign"], "lat": r["lat"], "lon": r["lon"],
         "rssi": r["rssi"], "distance": r["distance"],
-        "type": 'digi' if r['path'] and '*' in r['path'] else 'rf',
+        "type": 'meshcom' if r['path'] == 'MESHCOM' else ('digi' if r['path'] and '*' in r['path'] else 'rf'),
         "last_ts": r["timestamp"]} for r in rows])
 
 @app.route("/api/tracks")
@@ -397,6 +409,111 @@ def igate_proxy(subpath=""):
         return r.content, r.status_code, {"Content-Type": content_type}
     except Exception as e:
         return f"<h1>iGate non raggiungibile</h1><p>{e}</p>", 503
+
+
+# ─── MeshCom IU5MGF-12 ───────────────────────────────────────────────────────
+
+@app.route("/meshcom")
+def meshcom_page():
+    if not HAS_MESHCOM:
+        return "MeshCom non configurato", 404
+    return render_template_string(open(f"{DASHBOARD_DIR}/meshcom.html").read())
+
+@app.route("/api/meshcom/status")
+def meshcom_status():
+    if not HAS_MESHCOM:
+        return jsonify({"enabled": False})
+    db = get_db()
+    row = db.execute("SELECT * FROM meshcom_status ORDER BY id DESC LIMIT 1").fetchone()
+    db.close()
+    if not row:
+        return jsonify({})
+    rt = rome_time(row["timestamp"])
+    minutes_ago = int((datetime.now(timezone.utc) -
+        datetime.strptime(row["timestamp"][:19], "%Y-%m-%dT%H:%M:%S")
+        .replace(tzinfo=timezone.utc)).total_seconds() / 60)
+    return jsonify({
+        "callsign":    row["callsign"],
+        "firmware":    row["firmware"],
+        "battery_v":   row["battery_v"],
+        "battery_pct": row["battery_pct"],
+        "wifi_rssi":   row["wifi_rssi"],
+        "gateway_on":  row["gateway_on"],
+        "uptime_start": row["uptime_start"],
+        "last_seen":   rt.strftime("%H:%M:%S") if rt else "-",
+        "minutes_ago": minutes_ago,
+        "online":      minutes_ago < 5,
+    })
+
+@app.route("/api/meshcom/mheard")
+def meshcom_mheard():
+    db = get_db()
+    rows = db.execute("""
+        SELECT m.* FROM meshcom_mheard m
+        INNER JOIN (
+            SELECT callsign, MAX(id) as max_id FROM meshcom_mheard GROUP BY callsign
+        ) latest ON m.id = latest.max_id
+        ORDER BY m.timestamp DESC
+    """).fetchall()
+    db.close()
+    result = []
+    for r in rows:
+        rt = rome_time(r["timestamp"])
+        result.append({
+            "callsign": r["callsign"],
+            "rssi":     r["rssi"],
+            "snr":      r["snr"],
+            "distance": r["distance"],
+            "lat":      r["lat"],
+            "lon":      r["lon"],
+            "alt":      r["alt"],
+            "hardware": r["hardware"],
+            "msg_type": r["msg_type"],
+            "last_seen": rt.strftime("%H:%M:%S") if rt else "-",
+        })
+    return jsonify(result)
+
+@app.route("/api/meshcom/rxlog")
+def meshcom_rxlog():
+    db = get_db()
+    rows = db.execute(
+        "SELECT timestamp, src_call, dst_call, path, rssi, snr, raw "
+        "FROM meshcom_rxlog ORDER BY id DESC LIMIT 100"
+    ).fetchall()
+    db.close()
+    result = []
+    for r in rows:
+        rt = rome_time(r["timestamp"])
+        result.append({
+            "time":     rt.strftime("%H:%M:%S") if rt else r["timestamp"][11:19],
+            "src_call": r["src_call"],
+            "dst_call": r["dst_call"],
+            "path":     r["path"],
+            "rssi":     r["rssi"],
+            "snr":      r["snr"],
+            "raw":      r["raw"],
+        })
+    return jsonify(result)
+
+@app.route("/api/meshcom/rssi_history")
+def meshcom_rssi_history():
+    db = get_db()
+    rows = db.execute("""
+        SELECT timestamp, callsign, rssi, snr FROM meshcom_mheard
+        WHERE rssi IS NOT NULL ORDER BY id DESC LIMIT 200
+    """).fetchall()
+    db.close()
+    result = {}
+    for r in rows:
+        call = r["callsign"]
+        if call not in result:
+            result[call] = []
+        rt = rome_time(r["timestamp"])
+        result[call].append({"time": rt.strftime("%H:%M") if rt else "-", "rssi": r["rssi"], "snr": r["snr"]})
+    for call in result:
+        result[call] = list(reversed(result[call]))
+    return jsonify(result)
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False)

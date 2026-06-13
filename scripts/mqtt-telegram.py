@@ -58,6 +58,7 @@ def save_last_id(pid):
             f.write(str(pid))
     except Exception as e:
         print(f"Save last_id error: {e}", flush=True)
+
 def poll_packets():
     global last_id
     try:
@@ -65,7 +66,7 @@ def poll_packets():
         rows = db.execute(
             """SELECT id, timestamp, callsign, path, rssi, snr, distance, comment
                FROM packets WHERE id > ? AND crc_ok=1 AND msg_type='RX'
-               AND callsign IS NOT NULL AND callsign != ?
+               AND callsign IS NOT NULL AND callsign != ? AND (path IS NULL OR path != 'MESHCOM')
                ORDER BY id ASC""",
             (last_id, CALLSIGN)
         ).fetchall()
@@ -81,16 +82,38 @@ def poll_packets():
             rssi_str = f"{rssi} dBm" if rssi else "-"
             snr_str  = f"{snr} dB"   if snr  else "-"
             dist_str = f"{distance} km" if distance else "-"
-            digipeated = " \u2605" if path and "*" in path else ""
-            msg_text = (
-                f"\U0001f534 LoRa APRS {CALLSIGN}\n"
-                + f"\U0001f4e1 {callsign}{digipeated}\n"
-                + f"\U0001f4f6 RSSI: <b>{rssi_str}</b>  SNR: <b>{snr_str}</b>\n"
-                + f"\U0001f4cf Distanza: {dist_str}\n"
-                + f"\U0001f500 Path: {path}\n"
-                + (f"\U0001f4ac {comment}\n" if comment else "")
-                + f"\u23f1 {time_str}"
-            )
+            if path == "MESHCOM":
+                lat_s, lon_s, alt_s, batt_s = "-", "-", "-", "-"
+                pm = re.search(r'!(\d{2})(\d{2}\.\d+)([NS])[/\\](\d{3})(\d{2}\.\d+)([EW])', comment or "")
+                if pm:
+                    lat = float(pm.group(1)) + float(pm.group(2))/60
+                    if pm.group(3) == "S": lat = -lat
+                    lon = float(pm.group(4)) + float(pm.group(5))/60
+                    if pm.group(6) == "W": lon = -lon
+                    lat_s = f"{lat:.4f}N" if lat >= 0 else f"{abs(lat):.4f}S"
+                    lon_s = f"{lon:.4f}E" if lon >= 0 else f"{abs(lon):.4f}W"
+                am = re.search(r'/A=(\d+)', comment or "")
+                if am: alt_s = f"{int(int(am.group(1))*0.3048)}m"
+                bm = re.search(r'/B=(\d+)', comment or "")
+                if bm: batt_s = f"{bm.group(1)}%"
+                msg_text = (
+                    f"\U0001f4e1 MeshCom IU5MGF-12\n"
+                    + f"\U0001f6f0 {callsign}\n"
+                    + f"\U0001f4cd {lat_s} {lon_s}\n"
+                    + f"\U0001f50b {batt_s} | Alt: {alt_s}\n"
+                    + f"\u23f1 {time_str}"
+                )
+            else:
+                digipeated = " \u2605" if path and "*" in path else ""
+                msg_text = (
+                    f"\U0001f534 LoRa APRS {CALLSIGN}\n"
+                    + f"\U0001f4e1 {callsign}{digipeated}\n"
+                    + f"\U0001f4f6 RSSI: <b>{rssi_str}</b>  SNR: <b>{snr_str}</b>\n"
+                    + f"\U0001f4cf Distanza: {dist_str}\n"
+                    + f"\U0001f500 Path: {path}\n"
+                    + (f"\U0001f4ac {comment}\n" if comment else "")
+                    + f"\u23f1 {time_str}"
+                )
             try:
                 db_check = sqlite3.connect(DB_PATH)
                 count = db_check.execute(
@@ -115,6 +138,7 @@ def poll_packets():
             time.sleep(1)
     except Exception as e:
         print(f"Poll error: {e}", flush=True)
+
 def daily_report():
     now = now_rome()
     yesterday = (now - timedelta(days=1)).strftime("%Y-%m-%d")
@@ -124,7 +148,7 @@ def daily_report():
         db.row_factory = sqlite3.Row
         row = db.execute("SELECT * FROM daily_stats WHERE date=?", (yesterday,)).fetchone()
         top5 = db.execute("""SELECT callsign, COUNT(*) as cnt FROM packets
-            WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL AND callsign != ?
+            WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL AND callsign != ? AND (path IS NULL OR path != 'MESHCOM')
             AND path NOT LIKE '%*%'
             AND replace(timestamp,'T',' ') >= datetime(?, '-2 hours')
             AND replace(timestamp,'T',' ') < datetime(?, '+22 hours')
@@ -172,6 +196,7 @@ def schedule_daily_report():
     timer = threading.Timer(seconds, daily_report)
     timer.daemon = True
     timer.start()
+
 def system_report():
     try:
         try:
