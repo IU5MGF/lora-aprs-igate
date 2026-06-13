@@ -1,0 +1,128 @@
+<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>IU5MGF-10 iGate</title><link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet"><style>:root{--bg:#0a0c0f;--bg2:#0f1318;--bg3:#151a21;--border:#1e2a35;--accent:#00d4ff;--accent2:#ff4d4d;--accent3:#00ff9f;--text:#c8d8e8;--text-dim:#4a6070;--mono:"Share Tech Mono",monospace;--sans:"Rajdhani",sans-serif}*{margin:0;padding:0;box-sizing:border-box}body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh}body::before{content:"";position:fixed;top:0;left:0;right:0;bottom:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,212,255,.015) 2px,rgba(0,212,255,.015) 4px);pointer-events:none;z-index:1000}header{background:var(--bg2);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}.logo{display:flex;align-items:center;gap:12px}.logo-icon{width:36px;height:36px;border:2px solid var(--accent);border-radius:4px;display:flex;align-items:center;justify-content:center;animation:pulse-border 2s infinite}@keyframes pulse-border{0%,100%{box-shadow:0 0 4px var(--accent)}50%{box-shadow:0 0 12px var(--accent)}}.logo-icon svg{width:20px;height:20px;fill:var(--accent)}.logo-text{font-family:var(--mono);font-size:18px;color:var(--accent);letter-spacing:2px}.logo-sub{font-size:11px;color:var(--text-dim);letter-spacing:3px;text-transform:uppercase}.header-right{display:flex;align-items:center;gap:12px}.main{padding:20px 24px;max-width:1400px;margin:0 auto}.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}.stat-card{background:var(--bg2);border:1px solid var(--border);border-top:2px solid var(--accent);padding:16px}.stat-label{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px}.stat-value{font-family:var(--mono);font-size:28px;color:var(--accent);line-height:1}.stat-unit{font-size:11px;color:var(--text-dim);margin-top:4px}.panel{background:var(--bg2);border:1px solid var(--border);overflow:hidden;margin-bottom:16px}.panel-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg3)}.panel-title{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--accent);font-family:var(--mono)}.chart-wrap{padding:16px;position:relative;height:200px}.chart-line{display:flex;align-items:flex-end;height:160px;gap:2px}.chart-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}.chart-bar{width:100%;border-radius:2px 2px 0 0;min-height:2px}.chart-label{font-family:var(--mono);font-size:7px;color:var(--text-dim);margin-top:3px;text-align:center}.nav-dropdown{position:relative;display:inline-block}.nav-btn{font-family:"Share Tech Mono",monospace;font-size:11px;color:#00d4ff;border:1px solid #1e2a35;padding:6px 14px;letter-spacing:2px;background:transparent;cursor:pointer;display:flex;align-items:center;gap:8px}.nav-btn:hover{border-color:#00d4ff}.dropdown-menu{display:none;position:absolute;right:0;top:100%;margin-top:4px;background:#0f1318;border:1px solid #1e2a35;min-width:160px;z-index:200}.nav-dropdown.open .dropdown-menu{display:block}.dropdown-item{display:block;font-family:"Share Tech Mono",monospace;font-size:11px;color:#00d4ff;text-decoration:none;padding:8px 16px;letter-spacing:2px;white-space:nowrap;border-bottom:1px solid #1e2a35}.dropdown-item:last-child{border-bottom:none}.dropdown-item:hover{background:rgba(0,212,255,0.05)}footer{text-align:center;padding:16px;font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:2px;border-top:1px solid var(--border);margin-top:16px}</style></head>
+<body>
+<header><div class="logo"><div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg></div><div><div class="logo-text">IU5MGF-10</div><div class="logo-sub">iGate LilyGo T3 v1.6.1</div></div></div><div class="header-right"><div class="nav-dropdown" id="navDropdown"><button class="nav-btn" onclick="document.getElementById('navDropdown').classList.toggle('open')">MENU &#9660;</button><div class="dropdown-menu"><a class="dropdown-item" href="/">&#128268; DASHBOARD</a><a class="dropdown-item" href="/stations">&#128290; STAZIONI</a><a class="dropdown-item" href="/stats">&#9998; STATISTICHE</a><a class="dropdown-item" href="/map">&#9783; MAPPA</a><a class="dropdown-item" href="/server">&#128421; SERVER</a><a class="dropdown-item" href="/wx">&#127780; WX</a><a class="dropdown-item" href="/meshcom">&#128225; MeshCom</a>
+<a class="dropdown-item" href="/igate">&#128268; iGate WebUI</a></div></div><script>document.addEventListener('click',function(e){var d=document.getElementById('navDropdown');if(d&&!d.contains(e.target))d.classList.remove('open');});
+async function doReboot(target){
+  const pwd = document.getElementById('reboot-pwd').value;
+  document.getElementById('reboot-msg').textContent = 'In corso...';
+  try{
+    const r = await fetch('/api/reboot', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:pwd, target:target})});
+    const d = await r.json();
+    document.getElementById('reboot-msg').textContent = d.msg;
+    document.getElementById('reboot-msg').style.color = d.ok ? 'var(--accent3)' : 'var(--accent2)';
+    document.getElementById('reboot-pwd').value = '';
+    setTimeout(()=>{ document.getElementById('reboot-msg').textContent=''; }, 5000);
+  }catch(e){
+    document.getElementById('reboot-msg').textContent = 'Errore connessione';
+    document.getElementById('reboot-pwd').value = '';
+  }
+}
+</script></div></header>
+<div class="main">
+<div class="summary-grid">
+<div class="stat-card"><div class="stat-label">Tensione batteria</div><div class="stat-value" id="s-volt">-</div><div class="stat-unit">Volt</div></div>
+<div class="stat-card" id="card-volt-status"><div class="stat-label">Stato batteria</div><div class="stat-value" style="font-size:18px" id="s-volt-status">-</div><div class="stat-unit" id="s-volt-unit">LiPo 3.7V</div></div>
+<div class="stat-card"><div class="stat-label">Ultimo beacon</div><div class="stat-value" style="font-size:18px" id="s-beacon">-</div><div class="stat-unit" id="s-beacon-min">min fa</div></div>
+<div class="stat-card"><div class="stat-label">Pacchetti oggi</div><div class="stat-value" id="s-pkts">-</div><div class="stat-unit">ricevuti</div></div>
+</div>
+<div class="panel">
+<div class="panel-header"><span class="panel-title">Tensione batteria ultime 24h</span><span style="font-family:var(--mono);font-size:10px;color:var(--text-dim)" id="volt-range"></span></div>
+<div class="chart-wrap"><div class="chart-line" id="chart-volt"></div></div>
+</div>
+</div>
+<div class="panel">
+<div class="panel-header"><span class="panel-title">Controllo iGate</span></div>
+<div class="section" style="padding:16px">
+<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+<input type="password" id="reboot-pwd" autocomplete="off" placeholder="Password..." style="font-family:var(--mono);font-size:11px;background:var(--bg);color:var(--text);border:1px solid var(--border);padding:6px 10px;outline:none;width:160px">
+<button onclick="doReboot('igate')" style="font-family:var(--mono);font-size:11px;padding:6px 16px;background:var(--accent);color:var(--bg);border:none;cursor:pointer;letter-spacing:1px">&#8635; RIAVVIA IGATE</button>
+<button onclick="doReboot('server')" style="font-family:var(--mono);font-size:11px;padding:6px 16px;background:var(--accent2);color:white;border:none;cursor:pointer;letter-spacing:1px">&#8635; RIAVVIA SERVER</button>
+<span id="reboot-msg" style="font-family:var(--mono);font-size:11px;color:var(--accent3)"></span>
+</div>
+</div>
+</div><footer>IU5MGF-10 &middot; CA2RXU LoRa iGate/Digipeater &middot; Reggello (FI)</footer>
+<script>
+async function loadIgate(){
+  try{
+    // tensione
+    const vdata = await (await fetch('/api/igate_voltage')).json();
+    if(vdata.length){
+      const last = vdata[vdata.length-1];
+      document.getElementById('s-volt').textContent = last.voltage;
+      // stato batteria
+      const v = last.voltage;
+      let status, color;
+      if(v >= 3.9){ status='CARICA'; color='var(--accent3)'; }
+      else if(v >= 3.7){ status='BUONA'; color='var(--accent)'; }
+      else if(v >= 3.5){ status='BASSA'; color='#ffd700'; }
+      else { status='CRITICA'; color='var(--accent2)'; }
+      document.getElementById('s-volt-status').textContent = status;
+      document.getElementById('s-volt-status').style.color = color;
+      document.getElementById('card-volt-status').style.borderTopColor = color;
+
+      // grafico tensione SVG linea
+      const maxV = Math.max.apply(null, vdata.map(d=>d.voltage));
+      const minV = Math.min.apply(null, vdata.map(d=>d.voltage));
+      const range = maxV - minV || 0.1;
+      document.getElementById('volt-range').textContent = 'min:'+minV+'V max:'+maxV+'V';
+      const chart = document.getElementById('chart-volt');
+      const W = chart.clientWidth || 800;
+      const H = 160;
+      const pad = {t:20, b:30, l:40, r:10};
+      const step = Math.max(1, Math.floor(vdata.length/120));
+      const sampled = vdata.filter((_,i) => i % step === 0);
+      const pts = sampled.map(function(d,i){
+        const x = pad.l + i/(sampled.length-1||1)*(W-pad.l-pad.r);
+        const y = pad.t + (maxV-d.voltage)/range*(H-pad.t-pad.b);
+        return {x,y,d};
+      });
+      const polyline = pts.map(p=>p.x+','+p.y).join(' ');
+      // area sotto la linea
+      const areaFirst = pts[0].x+','+(H-pad.b);
+      const areaLast = pts[pts.length-1].x+','+(H-pad.b);
+      const areaPoints = areaFirst+' '+polyline+' '+areaLast;
+      // label ogni ~10 punti
+      const labels = pts.filter((_,i)=>i%(Math.ceil(pts.length/8))===0);
+      const labelsSvg = labels.map(p=>'<text x="'+p.x+'" y="'+(H-pad.b+12)+'" fill="#4a6070" font-size="8" text-anchor="middle" font-family="Share Tech Mono,monospace">'+p.d.time+'</text>').join('');
+      // linee guida orizzontali
+      const guides = [3.5,3.6,3.7,3.8,3.9,4.0,4.1,4.2].filter(v=>v>=minV-0.05&&v<=maxV+0.05);
+      const guidesSvg = guides.map(function(v){
+        const y = pad.t + (1-(v-minV)/range)*(H-pad.t-pad.b);
+        return '<line x1="'+pad.l+'" y1="'+y+'" x2="'+(W-pad.r)+'" y2="'+y+'" stroke="rgba(30,42,53,0.8)" stroke-width="1"/>'
+          +'<text x="'+(pad.l-4)+'" y="'+(y+3)+'" fill="#4a6070" font-size="8" text-anchor="end" font-family="Share Tech Mono,monospace">'+v+'V</text>';
+      }).join('');
+      chart.innerHTML = '<svg width="100%" height="'+H+'" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'
+        +guidesSvg
+        +'<polygon points="'+areaPoints+'" fill="rgba(0,212,255,0.08)"/>'
+        const lastPt = pts[pts.length-1];
+        const dotColor = lastPt.d.voltage >= 3.9 ? '#00ff9f' : lastPt.d.voltage >= 3.7 ? '#00d4ff' : lastPt.d.voltage >= 3.5 ? '#ffd700' : '#ff4d4d';
+        const boxX = lastPt.x > W-60 ? lastPt.x-44 : lastPt.x+8;
+        const lastDot = '<circle cx="'+lastPt.x+'" cy="'+lastPt.y+'" r="4" fill="'+dotColor+'" stroke="#0a0c0f" stroke-width="2"/>'
+          +'<rect x="'+boxX+'" y="'+(lastPt.y-10)+'" width="36" height="14" rx="2" fill="#0f1318" stroke="'+dotColor+'" stroke-width="1"/>'
+          +'<text x="'+(boxX+18)+'" y="'+(lastPt.y+1)+'" fill="'+dotColor+'" font-size="9" text-anchor="middle" font-family="Share Tech Mono,monospace">'+lastPt.d.voltage+'V</text>';
+        chart.innerHTML = '<svg width="100%" height="'+H+'" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'
+          +guidesSvg
+          +'<polygon points="'+areaPoints+'" fill="rgba(0,212,255,0.08)"/>'
+          +'<polyline points="'+polyline+'" fill="none" stroke="#00d4ff" stroke-width="2" stroke-linejoin="round"/>'
+          +lastDot
+          +labelsSvg
+          +'</svg>';
+    }
+
+    // beacon
+    const beacon = await (await fetch('/api/igate_beacon')).json();
+    document.getElementById('s-beacon').textContent = beacon.time;
+    document.getElementById('s-beacon-min').textContent = beacon.online ? beacon.minutes_ago+' min fa' : 'OFFLINE';
+
+    // pacchetti oggi
+    const stats = await (await fetch('/api/stats')).json();
+    document.getElementById('s-pkts').textContent = stats.total;
+
+  }catch(e){console.error(e);}
+}
+
+loadIgate();
+setInterval(loadIgate, 60000);
+
+</script>
+</body></html>
