@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>IU5MGF-10 Mappa</title>
+<title>{{ callsign }} Mappa</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
@@ -33,7 +33,7 @@ header{background:#0f1318;border-bottom:1px solid #1e2a35;padding:12px 24px;disp
 <body>
 <header>
   <div>
-    <div class="logo-text">IU5MGF-10</div>
+    <div class="logo-text">{{ callsign }}</div>
     <div class="logo-sub">Mappa stazioni &middot; ultimi 60 min</div>
   </div>
   <a href="/" class="back-btn">&#8592; DASHBOARD</a>
@@ -62,7 +62,7 @@ L.marker([43.68047, 11.52987], {
     html: "<div style='background:#00d4ff;width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 0 8px #00d4ff'></div>",
     iconSize: [14, 14], iconAnchor: [7, 7]
   })
-}).addTo(map).bindPopup("<b>IU5MGF-10</b><br>LoRa APRS iGate<br>Reggello (FI)");
+}).addTo(map).bindPopup("<b>{{ callsign }}</b><br>LoRa APRS iGate<br>Reggello (FI)");
 
 function addTwoHours(ts) {
   if (!ts) return "";
