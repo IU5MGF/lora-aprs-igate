@@ -135,8 +135,9 @@ def hourly():
     since = "datetime('now', '+2 hours', 'start of day', '-2 hours')"
     rows = db.execute(
         f"SELECT strftime('%H', datetime(timestamp, '+2 hours')) as hr, COUNT(*) as cnt "
-        f"FROM packets WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL AND callsign != '' AND replace(timestamp,'T',' ') >= {since} "
-        f"GROUP BY hr ORDER BY hr"
+        f"FROM packets WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL AND callsign != '' AND callsign != ? AND replace(timestamp,'T',' ') >= {since} "
+        f"GROUP BY hr ORDER BY hr",
+        (CALLSIGN,)
     ).fetchall()
     db.close()
     data = {str(h).zfill(2): 0 for h in range(24)}
