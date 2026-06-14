@@ -309,6 +309,19 @@ if [ "$HAS_MESHCOM" = "True" ]; then
         echo "  ✓ meshcom-poller.py"
     fi
     install_service "meshcom-poller" "MeshCom WebUI Poller" "/usr/bin/python3 /usr/local/bin/meshcom-poller.py"
+
+    if [ -f "$SCRIPT_DIR/meshcom-udp-listener.py" ]; then
+        sudo cp "$SCRIPT_DIR/meshcom-udp-listener.py" "/usr/local/bin/meshcom-udp-listener.py"
+        sudo chmod +x "/usr/local/bin/meshcom-udp-listener.py"
+        echo "  ✓ meshcom-udp-listener.py"
+    fi
+    install_service "meshcom-udp-listener" "MeshCom UDP Listener (porta 1799)" "/usr/bin/python3 /usr/local/bin/meshcom-udp-listener.py"
+
+    echo ""
+    echo -e "${YELLOW}IMPORTANTE: per attivare l'interfaccia UDP sul nodo MeshCom, collegati via seriale (USB)${NC}"
+    echo -e "${YELLOW}e invia i comandi:${NC}"
+    echo -e "${CYAN}  --extudpip $(hostname -I | awk '{print $1}')${NC}"
+    echo -e "${CYAN}  --extudp on${NC}"
 fi
 
 sudo systemctl daemon-reload

@@ -202,15 +202,7 @@ def save_rxlog_and_packets(db, entries):
                 (e["timestamp"], e["raw"], e["src_call"], e["dst_call"],
                  e["path"], e["msg_type"], e["rssi"], e["snr"]))
         except: pass
-        if e["dst_call"] == '*' and e["lat"] and e["lon"]:
-            try:
-                db.execute("""INSERT OR IGNORE INTO packets
-                    (timestamp, callsign, path, lat, lon, comment, msg_type, crc_ok)
-                    VALUES (?,?,?,?,?,?,?,1)""",
-                    (e["timestamp"], e["src_call"], "MESHCOM",
-                     e["lat"], e["lon"], e["comment"], "RX"))
-            except Exception as ex:
-                log.warning(f"packets insert: {ex}")
+        # beacon posizione ora gestiti da meshcom-udp-listener.py (tempo reale)
     db.commit()
 
 def save_messages(db, messages):
@@ -277,10 +269,10 @@ def poll():
             if key not in seen:
                 seen.add(key)
                 unique.append(m)
+        # messaggi ora notificati da meshcom-udp-listener.py (tempo reale)
+        # qui salviamo solo per storico, senza notifica duplicata
         new_msgs = save_messages(db, unique)
-        log.info(f"Messaggi: {len(unique)} unici, {len(new_msgs)} nuovi")
-        for m in new_msgs:
-            notify_message(m)
+        log.info(f"Messaggi: {len(unique)} unici, {len(new_msgs)} nuovi (gia notificati via UDP)")
     db.close()
 
 if __name__ == "__main__":
