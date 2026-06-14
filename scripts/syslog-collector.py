@@ -129,7 +129,7 @@ def main():
     sock.bind((HOST, PORT))
     while True:
         data, addr = sock.recvfrom(4096)
-        lines = data.decode("utf-8", errors="ignore").split("\n")
+        lines = data.decode("utf-8", errors="replace").split("\n")
         for line in lines:
             line = line.strip()
             if not line:

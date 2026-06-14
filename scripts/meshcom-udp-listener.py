@@ -108,6 +108,24 @@ def handle_tele(d, db):
     callsign = src.split(",")[0]
     log.info(f"TELE: {callsign} -> {d}")
 
+    temp = d.get("temp1")
+    hum  = d.get("hum")
+    qfe  = d.get("qfe")
+    qnh  = d.get("qnh")
+    gas  = d.get("gas")
+
+    if temp and temp != 0:
+        ts = now_utc()
+        try:
+            db.execute(
+                "INSERT INTO meshcom_weather (timestamp, callsign, temp, hum, qfe, qnh, gas) VALUES (?,?,?,?,?,?,?)",
+                (ts, callsign, temp, hum, qfe, qnh, gas)
+            )
+            db.commit()
+            log.info(f"WX: {callsign} temp={temp} hum={hum} qnh={qnh} gas={gas}")
+        except Exception as e:
+            log.warning(f"handle_tele db error: {e}")
+
 def main():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(("0.0.0.0", UDP_PORT))

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meteo — IU5MGF-12</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{--bg:#0a0c0f;--bg2:#0f1318;--bg3:#151a21;--border:#1e2a35;--accent:#00d4ff;--accent3:#00ff9f;--text:#c8d8e8;--text-dim:#4a6070;--mono:"Share Tech Mono",monospace;--sans:"Rajdhani",sans-serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh}
+header{background:var(--bg2);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
+.logo-text{font-family:var(--mono);font-size:18px;color:var(--accent);letter-spacing:2px}
+.logo-sub{font-size:11px;color:var(--text-dim);letter-spacing:3px;text-transform:uppercase}
+.main{padding:20px 24px;max-width:1200px;margin:0 auto}
+.stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
+@media(max-width:900px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-top:2px solid var(--accent);padding:16px}
+.stat-label{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px}
+.stat-value{font-family:var(--mono);font-size:28px;color:var(--accent);line-height:1}
+.stat-unit{font-size:11px;color:var(--text-dim);margin-top:4px}
+.panel{background:var(--bg2);border:1px solid var(--border);overflow:hidden;margin-bottom:16px}
+.panel-header{padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg3)}
+.panel-title{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--accent);font-family:var(--mono)}
+.chart-wrap{padding:16px;height:250px}
+.back-btn{font-family:var(--mono);font-size:11px;color:var(--accent);text-decoration:none;border:1px solid var(--border);padding:6px 14px;letter-spacing:2px}
+[data-theme="light"]{--bg:#f0f4f8;--bg2:#e1ecf7;--bg3:#e8eef4;--border:#d0dce8;--accent:#0066aa;--accent3:#007744;--text:#1a2a3a;--text-dim:#6a8090}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="logo-text">METEO</div>
+    <div class="logo-sub">BME680 su IU5MGF-12 &middot; Reggello</div>
+  </div>
+  <a href="/" class="back-btn">&#8592; DASHBOARD</a>
+</header>
+<div class="main">
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-label">Temperatura</div><div class="stat-value" id="wx-temp">-</div><div class="stat-unit">&deg;C</div></div>
+    <div class="stat-card"><div class="stat-label">Umidita</div><div class="stat-value" id="wx-hum">-</div><div class="stat-unit">%</div></div>
+    <div class="stat-card"><div class="stat-label">Pressione QNH</div><div class="stat-value" id="wx-qnh">-</div><div class="stat-unit">hPa</div></div>
+    <div class="stat-card"><div class="stat-label">Pressione QFE</div><div class="stat-value" id="wx-qfe">-</div><div class="stat-unit">hPa</div></div>
+    <div class="stat-card"><div class="stat-label">Aggiornamento</div><div class="stat-value" style="font-size:16px" id="wx-time">-</div><div class="stat-unit">ultimo dato</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">Temperatura e Umidita (24h)</span></div>
+    <div class="chart-wrap"><canvas id="chartTempHum"></canvas></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">Pressione QNH (24h)</span></div>
+    <div class="chart-wrap"><canvas id="chartPress"></canvas></div>
+  </div>
+</div>
+
+<script>
+async function loadLatest(){
+  try{
+    const d = await (await fetch('/api/meshcom/weather_latest')).json();
+    if(!d.temp) return;
+    document.getElementById('wx-temp').textContent = d.temp.toFixed(1);
+    document.getElementById('wx-hum').textContent = d.hum.toFixed(1);
+    document.getElementById('wx-qnh').textContent = d.qnh.toFixed(1);
+    document.getElementById('wx-qfe').textContent = d.qfe.toFixed(1);
+    document.getElementById('wx-time').textContent = d.time;
+  }catch(e){console.error(e);}
+}
+
+let chartTH, chartP;
+
+async function loadHistory(){
+  try{
+    const data = await (await fetch('/api/meshcom/weather')).json();
+    const labels = data.map(d => d.time);
+    const temps = data.map(d => d.temp);
+    const hums = data.map(d => d.hum);
+    const qnhs = data.map(d => d.qnh);
+
+    if(chartTH) chartTH.destroy();
+    if(chartP) chartP.destroy();
+
+    const ctx1 = document.getElementById('chartTempHum').getContext('2d');
+    chartTH = new Chart(ctx1, {
+      type: 'line',
+      data: { labels: labels, datasets: [
+        { label: 'Temp (C)', data: temps, borderColor: '#00d4ff', yAxisID: 'y', tension: 0.3 },
+        { label: 'Umidita (%)', data: hums, borderColor: '#00ff9f', yAxisID: 'y1', tension: 0.3 }
+      ]},
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: {
+          y: { type: 'linear', position: 'left', ticks: { color: '#00d4ff' } },
+          y1: { type: 'linear', position: 'right', ticks: { color: '#00ff9f' }, grid: { drawOnChartArea: false } },
+          x: { ticks: { color: '#4a6070', maxTicksLimit: 12 } }
+        },
+        plugins: { legend: { labels: { color: '#c8d8e8' } } }
+      }
+    });
+
+    const ctx2 = document.getElementById('chartPress').getContext('2d');
+    chartP = new Chart(ctx2, {
+      type: 'line',
+      data: { labels: labels, datasets: [
+        { label: 'QNH (hPa)', data: qnhs, borderColor: '#ffd700', tension: 0.3 }
+      ]},
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: {
+          y: { ticks: { color: '#ffd700' } },
+          x: { ticks: { color: '#4a6070', maxTicksLimit: 12 } }
+        },
+        plugins: { legend: { labels: { color: '#c8d8e8' } } }
+      }
+    });
+  }catch(e){console.error(e);}
+}
+
+function applyTheme(t){ document.documentElement.setAttribute('data-theme', t); }
+applyTheme(localStorage.getItem('theme') || 'dark');
+
+loadLatest();
+loadHistory();
+setInterval(loadLatest, 60000);
+setInterval(loadHistory, 300000);
+</script>
+</body>
+</html>

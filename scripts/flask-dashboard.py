@@ -495,6 +495,59 @@ def meshcom_rxlog():
         })
     return jsonify(result)
 
+@app.route("/wx")
+def wx_page():
+    if not HAS_MESHCOM:
+        return "MeshCom non configurato", 404
+    return render_template_string(open(f"{DASHBOARD_DIR}/wx.html").read())
+
+@app.route("/api/meshcom/weather")
+def meshcom_weather():
+    if not HAS_MESHCOM:
+        return jsonify({"enabled": False})
+    db = get_db()
+    rows = db.execute("""
+        SELECT timestamp, callsign, temp, hum, qfe, qnh, gas
+        FROM meshcom_weather ORDER BY id DESC LIMIT 288
+    """).fetchall()
+    db.close()
+    result = []
+    for r in rows:
+        rt = rome_time(r["timestamp"])
+        result.append({
+            "time": rt.strftime("%d/%m %H:%M") if rt else r["timestamp"][:16],
+            "callsign": r["callsign"],
+            "temp": r["temp"],
+            "hum": r["hum"],
+            "qfe": r["qfe"],
+            "qnh": r["qnh"],
+            "gas": r["gas"],
+        })
+    return jsonify(list(reversed(result)))
+
+@app.route("/api/meshcom/weather_latest")
+def meshcom_weather_latest():
+    if not HAS_MESHCOM:
+        return jsonify({"enabled": False})
+    db = get_db()
+    row = db.execute("""
+        SELECT timestamp, callsign, temp, hum, qfe, qnh, gas
+        FROM meshcom_weather ORDER BY id DESC LIMIT 1
+    """).fetchone()
+    db.close()
+    if not row:
+        return jsonify({})
+    rt = rome_time(row["timestamp"])
+    return jsonify({
+        "time": rt.strftime("%H:%M") if rt else "-",
+        "callsign": row["callsign"],
+        "temp": row["temp"],
+        "hum": row["hum"],
+        "qfe": row["qfe"],
+        "qnh": row["qnh"],
+        "gas": row["gas"],
+    })
+
 @app.route("/api/meshcom/rssi_history")
 def meshcom_rssi_history():
     db = get_db()
