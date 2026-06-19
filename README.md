@@ -1,5 +1,9 @@
 # LoRa APRS iGate — Server Software
 
+> ⚠️ **Progetto in fase di sviluppo attivo**
+> Questo software è rilasciato liberamente per la comunità radioamatoriale. Alcune funzionalità (es. pagine `/wx`, `/meshcom`) potrebbero apparire vuote su installazioni nuove finché non arrivano i primi dati, o presentare comportamenti imprevisti. Segnalazioni e contributi sono benvenuti.
+> *73 de IU5MGF — ARI Valdarno (IQ5GX)*
+
 Software completo per un iGate LoRa APRS basato su Raspberry Pi, con notifiche Telegram, dashboard web, monitoraggio sistema e supporto OLED opzionale.
 
 ## Caratteristiche
