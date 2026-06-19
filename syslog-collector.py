@@ -54,9 +54,25 @@ def parse_syslog(line):
         raw_call = parts[2] if len(parts) > 2 else None
         callsign = raw_call if raw_call and re.match(r'^[A-Z0-9]{3,8}(-\d{1,2})?$', raw_call) else None
         path = parts[3] if len(parts) > 3 else None
+        # Fallback: pacchetti terza parte con payload APRS annidato (} = third-party)
+        if not callsign:
+            tp = re.search(r'\}([A-Z0-9]{3,8}(?:-[A-Z0-9]{1,2})?)>([A-Z0-9,*\-]+):', line)
+            if tp:
+                callsign = tp.group(1)
+                path = tp.group(2)
         rssi     = float(parts[5].replace('dBm',''))  if len(parts) > 5  and 'dBm' in parts[5]  else None
         snr      = float(parts[6].replace('dB',''))   if len(parts) > 6  and 'dB'  in parts[6]  else None
         freq_err = float(parts[7].replace('Hz',''))   if len(parts) > 7  and 'Hz'  in parts[7]  else None
+        # Fallback RSSI/SNR/FREQ dalla fine se shiftati (pacchetti terza parte)
+        if rssi is None:
+            m = re.search(r'/\s*(-?\d+(?:\.\d+)?)dBm', line)
+            if m: rssi = float(m.group(1))
+        if snr is None:
+            m = re.search(r'/\s*(-?\d+(?:\.\d+)?)dB\b', line)
+            if m: snr = float(m.group(1))
+        if freq_err is None:
+            m = re.search(r'/\s*(-?\d+(?:\.\d+)?)Hz\s*$', line)
+            if m: freq_err = float(m.group(1))
         distance = float(parts[10].replace('km',''))  if len(parts) > 10 and 'km'  in parts[10] else None
         lat = lon = None
         if len(parts) > 8 and 'N' in parts[8]:
