@@ -46,7 +46,6 @@ header{background:#0f1318;border-bottom:1px solid #1e2a35;padding:12px 24px;disp
   <span style="color:#00ff9f">&#9679; RF diretta</span>
   <span style="color:#ffd700">&#9679; Digipeated</span>
   <span style="color:#bc8cff">&#9679; MeshCom</span>
-  <span style="color:#ff9f00">&#9679; Internet</span>
   <button class="toggle-btn" id="heatmap-btn" onclick="toggleHeatmap()">HEATMAP OFF</button>
 </div>
 <div id="map"></div>
@@ -99,7 +98,7 @@ async function loadMap() {
     markers = [];
 
     data.forEach(function(s) {
-      const color = s.type === "rf" ? "#00ff9f" : s.type === "meshcom" ? "#bc8cff" : s.type === "inet" ? "#ff9f00" : "#ffd700";
+      const color = s.type === "rf" ? "#00ff9f" : s.type === "meshcom" ? "#bc8cff" : "#ffd700";
       const size = 10;
       const ora = addTwoHours(s.last_ts);
       const html = "<div style='position:relative'>"
@@ -111,7 +110,7 @@ async function loadMap() {
       }).addTo(map);
       marker.bindPopup(
         "<b>" + s.callsign + "</b><br>"
-        + "Tipo: " + (s.type === "rf" ? "RF diretta" : s.type === "meshcom" ? "MeshCom" : s.type === "inet" ? "Internet" : "Digipeated") + "<br>"
+        + "Tipo: " + (s.type === "rf" ? "RF diretta" : s.type === "meshcom" ? "MeshCom" : "Digipeated") + "<br>"
         + "RSSI: " + s.rssi + " dBm<br>"
         + "Distanza: " + s.distance + " km<br>"
         + "Ultimo: " + ora

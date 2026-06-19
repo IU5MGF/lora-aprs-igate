@@ -42,8 +42,6 @@ async function loadPackets(){
       let pathBadge;
       if(p.path === 'MESHCOM')
         pathBadge = '<span style="background:#2a1a4a;color:#bc8cff;padding:1px 6px;border-radius:3px;font-size:10px">MESHCOM</span>';
-      else if(p.path && p.path.includes('TCPIP'))
-        pathBadge = '<span style="background:#2a1a2a;color:#ff9f00;padding:1px 6px;border-radius:3px;font-size:10px" title="'+p.path+'">INET</span>';
       else if(p.path && p.path.includes('*')){
         const parts = p.path.split(',');
         const digiIdx = parts.findIndex(x => x.includes('*'));

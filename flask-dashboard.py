@@ -164,7 +164,7 @@ def map_data():
     db.close()
     return jsonify([{"callsign": r["callsign"], "lat": r["lat"], "lon": r["lon"],
         "rssi": r["rssi"], "distance": r["distance"],
-        "type": 'meshcom' if r['path'] == 'MESHCOM' else ('inet' if r['path'] and 'TCPIP' in r['path'] else ('digi' if r['path'] and '*' in r['path'] else 'rf')),
+        "type": 'meshcom' if r['path'] == 'MESHCOM' else ('digi' if r['path'] and '*' in r['path'] else 'rf'),
         "last_ts": r["timestamp"]} for r in rows])
 
 @app.route("/api/tracks")
