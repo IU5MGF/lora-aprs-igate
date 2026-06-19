@@ -85,6 +85,17 @@ def parse_syslog(line):
                 lon = float(parts[9].replace('E','').replace('W',''))
                 if 'W' in parts[9]: lon = -lon
             except: pass
+        # Fallback lat/lon da regex per pacchetti terza parte
+        if lat is None:
+            m = re.search(r'(\d{2})(\d{2}\.\d+)([NS])', line)
+            if m:
+                lat = int(m.group(1)) + float(m.group(2))/60
+                if m.group(3) == 'S': lat = -lat
+        if lon is None:
+            m = re.search(r'(\d{3})(\d{2}\.\d+)([EW])', line)
+            if m:
+                lon = int(m.group(1)) + float(m.group(2))/60
+                if m.group(3) == 'W': lon = -lon
         comment = parts[11] if len(parts) > 11 else None
         voltage = None
         if comment:
