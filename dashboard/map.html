@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{ callsign }} Mappa</title>
+<title>IU5MGF-10 Mappa</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
@@ -33,7 +33,7 @@ header{background:#0f1318;border-bottom:1px solid #1e2a35;padding:12px 24px;disp
 <body>
 <header>
   <div>
-    <div class="logo-text">{{ callsign }}</div>
+    <div class="logo-text">IU5MGF-10</div>
     <div class="logo-sub">Mappa stazioni &middot; ultimi 60 min</div>
   </div>
   <a href="/" class="back-btn">&#8592; DASHBOARD</a>
@@ -46,6 +46,7 @@ header{background:#0f1318;border-bottom:1px solid #1e2a35;padding:12px 24px;disp
   <span style="color:#00ff9f">&#9679; RF diretta</span>
   <span style="color:#ffd700">&#9679; Digipeated</span>
   <span style="color:#bc8cff">&#9679; MeshCom</span>
+  <span style="color:#ff9f00">&#9679; Internet</span>
   <button class="toggle-btn" id="heatmap-btn" onclick="toggleHeatmap()">HEATMAP OFF</button>
 </div>
 <div id="map"></div>
@@ -62,7 +63,7 @@ L.marker([43.68047, 11.52987], {
     html: "<div style='background:#00d4ff;width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 0 8px #00d4ff'></div>",
     iconSize: [14, 14], iconAnchor: [7, 7]
   })
-}).addTo(map).bindPopup("<b>{{ callsign }}</b><br>LoRa APRS iGate<br>Reggello (FI)");
+}).addTo(map).bindPopup("<b>IU5MGF-10</b><br>LoRa APRS iGate<br>Reggello (FI)");
 
 function addTwoHours(ts) {
   if (!ts) return "";
@@ -98,7 +99,7 @@ async function loadMap() {
     markers = [];
 
     data.forEach(function(s) {
-      const color = s.type === "rf" ? "#00ff9f" : s.type === "meshcom" ? "#bc8cff" : "#ffd700";
+      const color = s.type === "rf" ? "#00ff9f" : s.type === "meshcom" ? "#bc8cff" : s.type === "inet" ? "#ff9f00" : "#ffd700";
       const size = 10;
       const ora = addTwoHours(s.last_ts);
       const html = "<div style='position:relative'>"
@@ -110,7 +111,7 @@ async function loadMap() {
       }).addTo(map);
       marker.bindPopup(
         "<b>" + s.callsign + "</b><br>"
-        + "Tipo: " + (s.type === "rf" ? "RF diretta" : s.type === "meshcom" ? "MeshCom" : "Digipeated") + "<br>"
+        + "Tipo: " + (s.type === "rf" ? "RF diretta" : s.type === "meshcom" ? "MeshCom" : s.type === "inet" ? "Internet" : "Digipeated") + "<br>"
         + "RSSI: " + s.rssi + " dBm<br>"
         + "Distanza: " + s.distance + " km<br>"
         + "Ultimo: " + ora
