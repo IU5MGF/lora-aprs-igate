@@ -45,8 +45,12 @@ async function loadPackets(){
       else if(p.path && p.path.includes('TCPIP'))
         pathBadge = '<span style="background:#2a1a2a;color:#ff9f00;padding:1px 6px;border-radius:3px;font-size:10px" title="'+p.path+'">INET</span>';
       else if(p.path && p.path.includes('*')){
-        const digiCall = p.path.split(',').find(x => x.includes('*'));
-        const digiLabel = digiCall ? 'DIGI via '+digiCall.replace('*','') : 'DIGI';
+        const parts = p.path.split(',');
+        const digiIdx = parts.findIndex(x => x.includes('*'));
+        let digiCall = digiIdx >= 0 ? parts[digiIdx].replace('*','') : null;
+        if(digiCall && /^(WIDE|TRACE|RELAY)\d*-?\d*$/.test(digiCall) && digiIdx > 0)
+          digiCall = parts[digiIdx-1].replace('*','');
+        const digiLabel = digiCall ? 'DIGI via '+digiCall : 'DIGI';
         pathBadge = '<span style="background:#1a3a1a;color:#00ff9f;padding:1px 6px;border-radius:3px;font-size:10px" title="'+p.path+'">'+digiLabel+'</span>';
       }
       else
