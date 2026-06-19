@@ -147,6 +147,11 @@ def hourly():
 @app.route("/api/map")
 def map_data():
     db = get_db()
+    own_callsigns = [CALLSIGN]
+    try:
+        from config import MESHCOM_CALLSIGN
+        own_callsigns.append(MESHCOM_CALLSIGN)
+    except: pass
     rows = db.execute("""
         SELECT callsign, lat, lon, rssi, distance, timestamp, path
         FROM packets WHERE crc_ok=1 AND msg_type='RX'
@@ -161,11 +166,24 @@ def map_data():
             AND replace(timestamp,'T',' ') >= datetime('now', '-60 minutes')
             GROUP BY callsign)
     """, (CALLSIGN, CALLSIGN)).fetchall()
+    # aggiungi propri nodi
+    own_rows = db.execute("""
+        SELECT callsign, lat, lon, rssi, distance, timestamp, path
+        FROM packets WHERE callsign IN ({})
+        AND lat IS NOT NULL AND lon IS NOT NULL
+        AND id IN (SELECT MAX(id) FROM packets WHERE callsign IN ({}) GROUP BY callsign)
+    """.format(','.join('?'*len(own_callsigns)), ','.join('?'*len(own_callsigns))),
+        own_callsigns + own_callsigns).fetchall()
     db.close()
-    return jsonify([{"callsign": r["callsign"], "lat": r["lat"], "lon": r["lon"],
+    result = [{"callsign": r["callsign"], "lat": r["lat"], "lon": r["lon"],
         "rssi": r["rssi"], "distance": r["distance"],
         "type": 'meshcom' if r['path'] == 'MESHCOM' else ('digi' if r['path'] and '*' in r['path'] else 'rf'),
-        "last_ts": r["timestamp"]} for r in rows])
+        "last_ts": r["timestamp"]} for r in rows]
+    for r in own_rows:
+        result.append({"callsign": r["callsign"], "lat": r["lat"], "lon": r["lon"],
+            "rssi": r["rssi"], "distance": r["distance"],
+            "type": "own", "last_ts": r["timestamp"]})
+    return jsonify(result)
 
 @app.route("/api/tracks")
 def tracks():

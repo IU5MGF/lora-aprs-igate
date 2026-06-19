@@ -47,6 +47,7 @@ header{background:#0f1318;border-bottom:1px solid #1e2a35;padding:12px 24px;disp
   <span style="color:#00ff9f">&#9679; RF diretta</span>
   <span style="color:#ffd700">&#9679; Digipeated</span>
   <span style="color:#bc8cff">&#9679; MeshCom</span>
+  <span style="color:#ff8000">&#9679; Nodo locale</span>
   <button class="toggle-btn" id="heatmap-btn" onclick="toggleHeatmap()">HEATMAP OFF</button>
 </div>
 <div id="map"></div>
@@ -88,8 +89,10 @@ async function loadMap() {
     const rf = data.filter(s => s.type === "rf");
     const digi = data.filter(s => s.type === "digi");
 
+    const mesh = data.filter(s => s.type === "meshcom");
     document.getElementById("stat-rf").textContent = rf.length;
     document.getElementById("stat-digi").textContent = digi.length;
+    document.getElementById("stat-mesh").textContent = mesh.length;
     document.getElementById("stat-total").textContent = data.length;
 
     const dists = data.map(d => d.distance).filter(d => d > 0);
@@ -99,7 +102,7 @@ async function loadMap() {
     markers = [];
 
     data.forEach(function(s) {
-      const color = s.type === "rf" ? "#00ff9f" : s.type === "meshcom" ? "#bc8cff" : "#ffd700";
+      const color = s.type === "rf" ? "#00ff9f" : s.type === "meshcom" ? "#bc8cff" : s.type === "own" ? "#ff8000" : "#ffd700";
       const size = 10;
       const ora = addTwoHours(s.last_ts);
       const html = "<div style='position:relative'>"
@@ -111,7 +114,7 @@ async function loadMap() {
       }).addTo(map);
       marker.bindPopup(
         "<b>" + s.callsign + "</b><br>"
-        + "Tipo: " + (s.type === "rf" ? "RF diretta" : s.type === "meshcom" ? "MeshCom" : "Digipeated") + "<br>"
+        + "Tipo: " + (s.type === "rf" ? "RF diretta" : s.type === "meshcom" ? "MeshCom" : s.type === "own" ? "Nodo locale" : "Digipeated") + "<br>"
         + "RSSI: " + s.rssi + " dBm<br>"
         + "Distanza: " + s.distance + " km<br>"
         + "Ultimo: " + ora
