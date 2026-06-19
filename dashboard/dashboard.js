@@ -42,8 +42,13 @@ async function loadPackets(){
       let pathBadge;
       if(p.path === 'MESHCOM')
         pathBadge = '<span style="background:#2a1a4a;color:#bc8cff;padding:1px 6px;border-radius:3px;font-size:10px">MESHCOM</span>';
-      else if(p.path && p.path.includes('*'))
-        pathBadge = '<span style="background:#1a3a1a;color:#00ff9f;padding:1px 6px;border-radius:3px;font-size:10px">DIGI</span>';
+      else if(p.path && p.path.includes('TCPIP'))
+        pathBadge = '<span style="background:#2a1a2a;color:#ff9f00;padding:1px 6px;border-radius:3px;font-size:10px" title="'+p.path+'">INET</span>';
+      else if(p.path && p.path.includes('*')){
+        const digiCall = p.path.split(',').find(x => x.includes('*'));
+        const digiLabel = digiCall ? 'DIGI via '+digiCall.replace('*','') : 'DIGI';
+        pathBadge = '<span style="background:#1a3a1a;color:#00ff9f;padding:1px 6px;border-radius:3px;font-size:10px" title="'+p.path+'">'+digiLabel+'</span>';
+      }
       else
         pathBadge = '<span style="background:#1a2a3a;color:#00d4ff;padding:1px 6px;border-radius:3px;font-size:10px">RF</span>';
       const callDisplay = p.path === 'MESHCOM'
