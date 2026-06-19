@@ -115,9 +115,9 @@ async function loadHourly(){
     const data = await (await fetch('/api/hourly')).json();
     const now = new Date();
     const currentHour = now.getHours();
-    // ordine da mezzanotte a ora corrente
+    // tutte le 24 ore, ora corrente evidenziata
     const hours = [];
-    for(let h=0; h<=currentHour; h++) hours.push(h.toString().padStart(2,'0'));
+    for(let h=0; h<24; h++) hours.push(h.toString().padStart(2,'0'));
     const vals = hours.map(h => data[h] || 0);
     const max = Math.max.apply(null, vals.concat([1]));
     const avg = vals.reduce((a,b)=>a+b,0) / (vals.length || 1);
