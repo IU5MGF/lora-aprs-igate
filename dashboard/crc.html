@@ -18,6 +18,14 @@
 </table></div></div></div>
 <footer>{{ callsign }} &middot; CA2RXU LoRa iGate/Digipeater &middot; Reggello (FI)</footer>
 <script>
+fetch('/api/meshcom/status').then(r=>r.json()).then(d=>{
+    if(d.enabled !== false){
+        var el = document.getElementById('menu-meshcom');
+        if(el) el.style.display='block';
+    }
+}).catch(()=>{});
+</script>
+<script>
 async function loadCrc(){
   const data = await (await fetch('/api/crc')).json();
   document.getElementById('crc-count').textContent = data.length+' errori (ultime 24h)';
