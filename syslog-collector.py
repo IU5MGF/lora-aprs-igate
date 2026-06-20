@@ -62,7 +62,7 @@ def parse_syslog(line):
             if tp:
                 callsign = tp.group(1)
                 # Trasmittente RF diretto del frame esterno: <CALLSIGN>...
-                src_match = re.search(r'<\x00?([A-Z0-9]{3,8}(?:-[A-Z0-9]{1,2})?)>', payload_part)
+                src_match = re.search(r'<.{0,3}?([A-Z0-9]{3,8}(?:-[A-Z0-9]{1,2})?)>', payload_part)
                 # Path esterno con digipeater intermedio (DEST,PATH*:})
                 ext_path = re.search(r'>[A-Z0-9]+,([A-Z0-9,*\-]+):\}', payload_part)
                 if ext_path:
