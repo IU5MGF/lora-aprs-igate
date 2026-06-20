@@ -56,12 +56,20 @@ def parse_syslog(line):
         path = parts[3] if len(parts) > 3 else None
         # Fallback: pacchetti terza parte con payload APRS annidato (} = third-party)
         if not callsign:
-            tp = re.search(r'\}([A-Z0-9]{3,8}(?:-[A-Z0-9]{1,2})?)>', line)
+            # Isola il payload dopo "RX / " per evitare di matchare l'header syslog <165>
+            payload_part = line.split(' / ', 1)[1] if ' / ' in line else line
+            tp = re.search(r'\}([A-Z0-9]{3,8}(?:-[A-Z0-9]{1,2})?)>', payload_part)
             if tp:
                 callsign = tp.group(1)
-                # Path esterno: quello del frame LoRa ricevuto (prima del })
-                ext_path = re.search(r'>[A-Z0-9]+,([A-Z0-9,*\-]+):\}', line)
-                path = ext_path.group(1) if ext_path else path
+                # Trasmittente RF diretto del frame esterno: <CALLSIGN>...
+                src_match = re.search(r'<\x00?([A-Z0-9]{3,8}(?:-[A-Z0-9]{1,2})?)>', payload_part)
+                # Path esterno con digipeater intermedio (DEST,PATH*:})
+                ext_path = re.search(r'>[A-Z0-9]+,([A-Z0-9,*\-]+):\}', payload_part)
+                if ext_path:
+                    path = ext_path.group(1)
+                elif src_match:
+                    # Nessun digipeater intermedio: il trasmittente RF è la sorgente diretta
+                    path = src_match.group(1) + '*'
         rssi     = float(parts[5].replace('dBm',''))  if len(parts) > 5  and 'dBm' in parts[5]  else None
         snr      = float(parts[6].replace('dB',''))   if len(parts) > 6  and 'dB'  in parts[6]  else None
         freq_err = float(parts[7].replace('Hz',''))   if len(parts) > 7  and 'Hz'  in parts[7]  else None
