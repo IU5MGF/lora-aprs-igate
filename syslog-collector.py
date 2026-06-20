@@ -38,6 +38,54 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         timestamp TEXT, type TEXT, message TEXT
     )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS meshcom_weather (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TEXT, callsign TEXT,
+        temp REAL, hum REAL, qfe REAL, qnh REAL, gas REAL
+    )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS meshcom_status (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TEXT NOT NULL,
+        callsign TEXT,
+        firmware TEXT,
+        battery_v REAL,
+        battery_pct INTEGER,
+        wifi_rssi INTEGER,
+        gateway_on INTEGER,
+        uptime_start TEXT
+    )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS meshcom_mheard (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TEXT NOT NULL,
+        callsign TEXT,
+        rssi INTEGER,
+        snr INTEGER,
+        distance REAL,
+        lat REAL,
+        lon REAL,
+        alt INTEGER,
+        hardware TEXT,
+        msg_type TEXT
+    )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS meshcom_rxlog (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TEXT NOT NULL,
+        raw TEXT UNIQUE,
+        src_call TEXT,
+        dst_call TEXT,
+        path TEXT,
+        msg_type TEXT,
+        rssi INTEGER,
+        snr INTEGER
+    )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS meshcom_messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TEXT NOT NULL,
+        callsign TEXT,
+        dest TEXT,
+        message TEXT,
+        UNIQUE(timestamp, callsign, message)
+    )''')
     conn.commit()
     conn.close()
     print("DB inizializzato", flush=True)
