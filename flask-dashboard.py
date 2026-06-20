@@ -339,6 +339,21 @@ def reboot():
         subprocess.Popen(["sudo", "reboot"])
         return jsonify({"ok": True, "msg": "Server in riavvio..."})
 
+@app.route("/crc")
+def crc_page():
+    return render_template_string(open(f"{DASHBOARD_DIR}/crc.html").read(), callsign=CALLSIGN)
+@app.route("/api/crc")
+def crc_api():
+    db = get_db()
+    rows = db.execute("""
+        SELECT timestamp, rssi, snr, raw FROM packets
+        WHERE msg_type='CRC'
+        AND replace(timestamp,'T',' ') >= datetime('now', '-24 hours')
+        ORDER BY id DESC LIMIT 200
+    """).fetchall()
+    db.close()
+    return jsonify([{"time": rome_time(r["timestamp"]).strftime("%d/%m %H:%M:%S") if rome_time(r["timestamp"]) else r["timestamp"][:19],
+        "rssi": r["rssi"], "snr": r["snr"], "raw": r["raw"]} for r in rows])
 @app.route("/api/events")
 def events_api():
     db = get_db()
