@@ -146,6 +146,13 @@ def hourly():
     return jsonify(data)
 @app.route("/api/map")
 def map_data():
+    minutes = request.args.get("minutes", "60")
+    try:
+        minutes = int(minutes)
+        if minutes not in (15, 30, 45, 60, 90, 120, 360, 720, 1440):
+            minutes = 60
+    except:
+        minutes = 60
     db = get_db()
     own_callsigns = [CALLSIGN]
     try:
@@ -157,15 +164,15 @@ def map_data():
         FROM packets WHERE crc_ok=1 AND msg_type='RX'
         AND callsign IS NOT NULL AND callsign != ?
         AND lat IS NOT NULL AND lon IS NOT NULL
-        AND replace(timestamp,'T',' ') >= datetime('now', '-60 minutes')
+        AND replace(timestamp,'T',' ') >= datetime('now', '-' || ? || ' minutes')
         AND id IN (
             SELECT MAX(id) FROM packets
             WHERE crc_ok=1 AND msg_type='RX'
             AND callsign IS NOT NULL AND callsign != ?
             AND lat IS NOT NULL AND lon IS NOT NULL
-            AND replace(timestamp,'T',' ') >= datetime('now', '-60 minutes')
+            AND replace(timestamp,'T',' ') >= datetime('now', '-' || ? || ' minutes')
             GROUP BY callsign)
-    """, (CALLSIGN, CALLSIGN)).fetchall()
+    """, (CALLSIGN, minutes, CALLSIGN, minutes)).fetchall()
     # aggiungi propri nodi
     own_rows = db.execute("""
         SELECT callsign, lat, lon, rssi, distance, timestamp, path
@@ -187,17 +194,23 @@ def map_data():
 
 @app.route("/api/tracks")
 def tracks():
+    minutes = request.args.get("minutes", "60")
+    try:
+        minutes = int(minutes)
+        if minutes not in (15, 30, 45, 60, 90, 120, 360, 720, 1440):
+            minutes = 60
+    except:
+        minutes = 60
     db = get_db()
     all_trackers = db.execute("""
         SELECT callsign FROM packets
         WHERE crc_ok=1 AND msg_type='RX'
         AND lat IS NOT NULL AND lon IS NOT NULL
-        AND replace(timestamp,'T',' ') >= datetime('now', '-60 minutes')
-        AND date(timestamp, '+2 hours') = date('now', '+2 hours')
+        AND replace(timestamp,'T',' ') >= datetime('now', '-' || ? || ' minutes')
         GROUP BY callsign
         HAVING COUNT(*) > 2
         AND (MAX(lat)-MIN(lat) > 0.001 OR MAX(lon)-MIN(lon) > 0.001)
-    """).fetchall()
+    """, (minutes,)).fetchall()
     result = {}
     for t in all_trackers:
         call = t['callsign']
@@ -205,10 +218,9 @@ def tracks():
             SELECT lat, lon, rssi, timestamp, path FROM packets
             WHERE crc_ok=1 AND msg_type='RX' AND callsign=?
             AND lat IS NOT NULL AND lon IS NOT NULL
-            AND replace(timestamp,'T',' ') >= datetime('now', '-60 minutes')
-            AND date(timestamp, '+2 hours') = date('now', '+2 hours')
+            AND replace(timestamp,'T',' ') >= datetime('now', '-' || ? || ' minutes')
             ORDER BY timestamp ASC
-        """, (call,)).fetchall()
+        """, (call, minutes)).fetchall()
         if not points:
             continue
         last_path = points[-1]['path'] or ''
