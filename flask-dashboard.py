@@ -67,12 +67,19 @@ def stats():
     best       = db.execute(f"SELECT callsign, MAX(distance) FROM packets WHERE crc_ok=1 AND msg_type='RX' AND distance IS NOT NULL AND path NOT LIKE '%*%' AND replace(timestamp,'T',' ') >= {since}").fetchone()
     rssi_avg   = db.execute(f"SELECT AVG(rssi) FROM packets WHERE crc_ok=1 AND msg_type='RX' AND rssi IS NOT NULL AND replace(timestamp,'T',' ') >= {since}").fetchone()[0]
     crc_errors = db.execute(f"SELECT COUNT(*) FROM packets WHERE crc_ok=0 AND replace(timestamp,'T',' ') >= {since}").fetchone()[0]
+    meshcom_packets = 0
+    try:
+        meshcom_packets = db.execute(
+            "SELECT COUNT(*) FROM meshcom_rxlog WHERE replace(timestamp,'T',' ') >= datetime('now', '-24 hours')"
+        ).fetchone()[0]
+    except: pass
     db.close()
     return jsonify({"total": total, "unique": unique,
         "best_callsign": best[0] if best else "-",
         "best_distance": best[1] if best else 0,
         "rssi_avg": round(rssi_avg, 1) if rssi_avg else 0,
-        "crc_errors": crc_errors})
+        "crc_errors": crc_errors,
+        "meshcom_packets": meshcom_packets})
 
 @app.route("/api/packets")
 def packets():
@@ -515,7 +522,7 @@ def meshcom_mheard():
             "alt":      r["alt"],
             "hardware": r["hardware"],
             "msg_type": r["msg_type"],
-            "last_seen": rt.strftime("%H:%M:%S") if rt else "-",
+            "last_seen": rt.strftime("%d/%m %H:%M:%S") if rt else "-",
         })
     return jsonify(result)
 
@@ -531,7 +538,7 @@ def meshcom_rxlog():
     for r in rows:
         rt = rome_time(r["timestamp"])
         result.append({
-            "time":     rt.strftime("%H:%M:%S") if rt else r["timestamp"][11:19],
+            "time":     rt.strftime("%d/%m %H:%M:%S") if rt else r["timestamp"][11:19],
             "src_call": r["src_call"],
             "dst_call": r["dst_call"],
             "path":     r["path"],

@@ -40,6 +40,7 @@
   .badge-red    { background: #3a1a1a; color: var(--red); }
   .badge-blue   { background: #1a2a3a; color: var(--blue); }
   .badge-orange { background: #3a2a1a; color: var(--orange); }
+  .badge-gray   { background: #2a2a2a; color: #888; }
 
   /* TABLES */
   .section { background: var(--card); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 24px; overflow: hidden; }
@@ -92,7 +93,15 @@
   </div>
 
   <!-- MHEARD -->
-  <div class="section">
+  <div style="padding:10px 16px;font-size:11px;color:var(--text-dim);display:flex;gap:16px;flex-wrap:wrap;background:var(--bg2,#0f1318);border:1px solid var(--border,#1e2a35);border-radius:4px;margin-bottom:12px">
+  <span><b>TXT</b> = messaggio testuale</span>
+  <span><b>HEY</b> = beacon/keepalive periodico</span>
+  <span><b>POS</b> = pacchetto posizione GPS</span>
+  <span><b>HG</b> = HomeGateway (verso internet/APRS-IS)</span>
+  <span><b>SYNC</b> = sincronizzazione orario (time-sync)</span>
+  <span><b>H</b> = Hop/ritrasmissione mesh</span>
+</div>
+<div class="section">
     <div class="section-header">
       <span>🔊 Nodi sentiti (MHeard)</span>
       <span id="mheard-age" class="mono"></span>
@@ -182,9 +191,11 @@ async function loadRxlog() {
   const tb = document.getElementById('rxlog-body');
   tb.innerHTML = rows.slice(0,50).map(r => {
     const isHG  = r.dst_call === 'HG';
-    const isPos = r.dst_call === '*';
+    const isPos = r.dst_call === '*' && r.raw && r.raw.includes('!');
+    const isTimeSync = r.dst_call === '*' && r.raw && r.raw.includes('{CET}');
     const badge = isHG  ? '<span class="badge badge-blue">HG</span>'
                 : isPos ? '<span class="badge badge-orange">POS</span>'
+                : isTimeSync ? '<span class="badge badge-gray">SYNC</span>'
                         : `<span class="badge badge-green">${r.dst_call||'?'}</span>`;
     return `<tr>
       <td class="mono">${r.time}</td>

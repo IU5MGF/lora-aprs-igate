@@ -20,6 +20,7 @@ async function loadStats(){
     document.getElementById('stat-dist-call').textContent = d.best_callsign || '-';
     document.getElementById('stat-rssi').textContent = d.rssi_avg || '-';
     document.getElementById('stat-crc').textContent = d.crc_errors;
+    document.getElementById('stat-meshcom').textContent = d.meshcom_packets;
     document.getElementById('stat-update').textContent = new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
   }catch(e){console.error(e);}
 }
