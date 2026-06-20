@@ -237,4 +237,7 @@ def main():
                 update_station(callsign, ts, distance, rssi, lat, lon, path)
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "--init-only":
+        init_db()
+        sys.exit(0)
     main()

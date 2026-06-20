@@ -292,6 +292,19 @@ SVCEOF
     echo "  ✓ ${name}.service"
 }
 
+echo -e "${CYAN}--- Inizializzazione database ---${NC}"
+sudo python3 -c "
+import sys
+sys.path.insert(0, '/usr/local/lib/lora-aprs')
+sys.path.insert(0, '/usr/local/bin')
+from syslog_collector import init_db
+init_db()
+" 2>/dev/null || sudo python3 /usr/local/bin/syslog-collector.py --init-only 2>/dev/null || echo -e "${YELLOW}Avviso: inizializzazione DB posticipata al primo avvio servizio${NC}"
+
+echo -e "${CYAN}--- Inizializzazione database ---${NC}"
+sudo python3 /usr/local/bin/syslog-collector.py --init-only
+echo -e "${GREEN}Database inizializzato.${NC}"
+
 install_service "syslog-collector" "LoRa APRS Syslog Collector"   "/usr/bin/python3 /usr/local/bin/syslog-collector.py"
 install_service "mqtt-telegram"    "LoRa APRS MQTT Telegram"      "/usr/bin/python3 /usr/local/bin/mqtt-telegram.py"
 install_service "alerts"           "LoRa APRS Alerts"             "/usr/bin/python3 /usr/local/bin/alerts.py"
