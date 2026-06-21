@@ -56,6 +56,15 @@ async function doReboot(target){
 <span id="reboot-msg" style="font-family:var(--mono);font-size:11px;color:var(--accent3)"></span>
 </div>
 </div>
+<div class="section">
+<div class="section-title">Aggiornamento sistema (apt update &amp; upgrade)</div>
+<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+<input type="password" id="update-pwd" autocomplete="off" placeholder="Password..." style="font-family:var(--mono);font-size:11px;background:var(--bg);color:var(--text);border:1px solid var(--border);padding:6px 10px;outline:none;width:160px">
+<button onclick="doSystemUpdate()" id="update-btn" style="font-family:var(--mono);font-size:11px;padding:6px 16px;background:#ff9f00;color:var(--bg);border:none;cursor:pointer;letter-spacing:1px">&#8593; AGGIORNA SISTEMA</button>
+<span id="update-msg" style="font-family:var(--mono);font-size:11px;color:var(--accent3)"></span>
+</div>
+<pre id="update-log" style="display:none;background:var(--bg);border:1px solid var(--border);padding:10px;font-family:var(--mono);font-size:10px;color:var(--text-dim);max-height:300px;overflow-y:auto;white-space:pre-wrap;margin:0"></pre>
+</div>
 </div><footer>IU5MGF-10 &middot; CA2RXU LoRa iGate/Digipeater &middot; Reggello (FI)</footer>
 <script>
 async function loadServer(){
@@ -100,6 +109,46 @@ async function doReboot(target){
     document.getElementById('reboot-msg').textContent = 'Errore connessione';
     document.getElementById('reboot-pwd').value = '';
   }
+}
+let updatePollInterval = null;
+async function doSystemUpdate(){
+  const pwd = document.getElementById('update-pwd').value;
+  document.getElementById('update-msg').textContent = 'Avvio...';
+  document.getElementById('update-btn').disabled = true;
+  try{
+    const r = await fetch('/api/system-update', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:pwd})});
+    const d = await r.json();
+    document.getElementById('update-msg').textContent = d.msg;
+    document.getElementById('update-msg').style.color = d.ok ? 'var(--accent3)' : 'var(--accent2)';
+    document.getElementById('update-pwd').value = '';
+    if(d.ok){
+      document.getElementById('update-log').style.display = 'block';
+      pollUpdateStatus();
+    } else {
+      document.getElementById('update-btn').disabled = false;
+    }
+  }catch(e){
+    document.getElementById('update-msg').textContent = 'Errore connessione';
+    document.getElementById('update-btn').disabled = false;
+  }
+}
+async function pollUpdateStatus(){
+  if(updatePollInterval) clearInterval(updatePollInterval);
+  updatePollInterval = setInterval(async ()=>{
+    try{
+      const r = await fetch('/api/system-update/status');
+      const d = await r.json();
+      const logEl = document.getElementById('update-log');
+      logEl.textContent = d.log;
+      logEl.scrollTop = logEl.scrollHeight;
+      if(!d.running){
+        clearInterval(updatePollInterval);
+        document.getElementById('update-btn').disabled = false;
+        document.getElementById('update-msg').textContent = 'Completato';
+        document.getElementById('update-msg').style.color = 'var(--accent3)';
+      }
+    }catch(e){}
+  }, 3000);
 }
 </script>
 

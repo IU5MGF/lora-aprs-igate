@@ -338,6 +338,31 @@ def reboot():
     else:
         subprocess.Popen(["sudo", "reboot"])
         return jsonify({"ok": True, "msg": "Server in riavvio..."})
+@app.route("/api/system-update", methods=["POST"])
+def system_update():
+    password = request.json.get("password", "")
+    if password != IGATE_REBOOT_PW:
+        return jsonify({"ok": False, "msg": "Password errata"})
+    if os.path.exists("/tmp/system-update.running"):
+        return jsonify({"ok": False, "msg": "Aggiornamento gia in corso"})
+    open("/tmp/system-update.running", "w").close()
+    cmd = (
+        "sudo apt update >> /tmp/system-update.log 2>&1 && "
+        "sudo apt upgrade -y >> /tmp/system-update.log 2>&1; "
+        "rm -f /tmp/system-update.running; "
+        "echo \'=== COMPLETATO ===\' >> /tmp/system-update.log"
+    )
+    open("/tmp/system-update.log", "w").close()
+    subprocess.Popen(cmd, shell=True)
+    return jsonify({"ok": True, "msg": "Aggiornamento avviato in background"})
+@app.route("/api/system-update/status")
+def system_update_status():
+    running = os.path.exists("/tmp/system-update.running")
+    log_content = ""
+    if os.path.exists("/tmp/system-update.log"):
+        with open("/tmp/system-update.log") as f:
+            log_content = f.read()[-3000:]
+    return jsonify({"running": running, "log": log_content})
 
 @app.route("/crc")
 def crc_page():
