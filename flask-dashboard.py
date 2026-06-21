@@ -85,17 +85,10 @@ def stats():
 def packets():
     db = get_db()
     rows = db.execute("""
-        SELECT timestamp, callsign, path, rssi, snr, distance, comment FROM
-        (SELECT timestamp, callsign, path, rssi, snr, distance, comment, id FROM packets
-         WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL AND callsign != ?
-         AND path != 'MESHCOM' ORDER BY id DESC LIMIT 40)
-        UNION ALL
-        SELECT timestamp, callsign, path, rssi, snr, distance, comment FROM
-        (SELECT timestamp, callsign, path, rssi, snr, distance, comment, id FROM packets
-         WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL AND callsign != ?
-         AND path = 'MESHCOM' ORDER BY id DESC LIMIT 10)
-    """, (CALLSIGN, CALLSIGN)).fetchall()
-    rows = sorted(rows, key=lambda r: r["timestamp"], reverse=True)[:50]
+        SELECT timestamp, callsign, path, rssi, snr, distance, comment FROM packets
+        WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL AND callsign != ?
+        ORDER BY id DESC LIMIT 50
+    """, (CALLSIGN,)).fetchall()
     db.close()
     result = []
     for r in rows:
