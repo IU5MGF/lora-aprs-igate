@@ -45,15 +45,53 @@ ask_yn() {
     done
 }
 
+# Leggi valori esistenti da config.py se presente
+CONFIG_PATH="/usr/local/lib/lora-aprs/config.py"
+if [ -f "$CONFIG_PATH" ]; then
+    echo -e "${YELLOW}config.py esistente trovato — i valori attuali verranno usati come default.${NC}"
+    _read_cfg() { python3 -c "
+import re, sys
+for line in open('$CONFIG_PATH'):
+    m = re.match(r'^' + sys.argv[1] + r'\s*=\s*\"(.*)\"', line)
+    if m: print(m.group(1)); break
+" "$1" 2>/dev/null; }
+    _read_cfg_bare() { python3 -c "
+import re, sys
+for line in open('$CONFIG_PATH'):
+    m = re.match(r'^' + sys.argv[1] + r'\s*=\s*(.*)', line)
+    if m: print(m.group(1).strip()); break
+" "$1" 2>/dev/null; }
+    DEF_CALLSIGN=$(_read_cfg "CALLSIGN")
+    DEF_IGATE_IP=$(_read_cfg "IGATE_IP")
+    DEF_REBOOT_PW=$(_read_cfg "IGATE_REBOOT_PW")
+    DEF_BOT_NOTIFY=$(_read_cfg "BOT_TOKEN_NOTIFY")
+    DEF_CHAT_NOTIFY=$(_read_cfg "CHAT_ID_NOTIFY")
+    DEF_BOT_ALERT=$(_read_cfg "BOT_TOKEN_ALERT")
+    DEF_CHAT_ALERT=$(_read_cfg "CHAT_ID_ALERT")
+    DEF_LAT=$(_read_cfg_bare "LATITUDE")
+    DEF_LON=$(_read_cfg_bare "LONGITUDE")
+    DEF_LOCATION=$(_read_cfg "LOCATION")
+    DEF_TIMEZONE=$(_read_cfg "TIMEZONE")
+    DEF_DB_RETENTION=$(_read_cfg_bare "DB_RETENTION_DAYS")
+    DEF_MESHCOM_IP=$(_read_cfg "MESHCOM_IP")
+    DEF_MESHCOM_CALLSIGN=$(_read_cfg "MESHCOM_CALLSIGN")
+else
+    DEF_CALLSIGN=""; DEF_IGATE_IP="192.168.2.10"; DEF_REBOOT_PW="raspberry"
+    DEF_BOT_NOTIFY=""; DEF_CHAT_NOTIFY=""; DEF_BOT_ALERT=""; DEF_CHAT_ALERT=""
+    DEF_LAT="43.6800"; DEF_LON="11.5300"; DEF_LOCATION="Reggello"
+    DEF_TIMEZONE="Europe/Rome"; DEF_DB_RETENTION="30"
+    DEF_MESHCOM_IP="192.168.2.12"; DEF_MESHCOM_CALLSIGN=""
+fi
+
 echo -e "${CYAN}--- Configurazione iGate ---${NC}"
-CALLSIGN=$(ask "Callsign iGate (es. IZ5XXX-10)")
-IGATE_IP=$(ask "IP locale iGate" "192.168.2.10")
-IGATE_REBOOT_PW=$(ask "Password reboot iGate" "raspberry")
+CALLSIGN=$(ask "Callsign iGate (es. IZ5XXX-10)" "$DEF_CALLSIGN")
+IGATE_IP=$(ask "IP locale iGate" "${DEF_IGATE_IP:-192.168.2.10}")
+IGATE_REBOOT_PW=$(ask "Password reboot iGate" "${DEF_REBOOT_PW:-raspberry}")
 
 echo ""
 echo -e "${CYAN}--- Telegram notifiche pacchetti ---${NC}"
-BOT_TOKEN_NOTIFY=$(ask "Bot Token Telegram (notifiche)")
-CHAT_ID_NOTIFY=$(ask "Chat ID Telegram (notifiche)")
+BOT_TOKEN_NOTIFY=$(ask "Bot Token Telegram (notifiche)" "$DEF_BOT_NOTIFY")
+CHAT_ID_NOTIFY=$(ask "Chat ID Telegram (notifiche)" "$DEF_CHAT_NOTIFY")
 
 echo ""
 echo -e "${CYAN}--- Telegram alert sistema ---${NC}"
@@ -62,14 +100,14 @@ if [ "$SAME_BOT" = "True" ]; then
     BOT_TOKEN_ALERT="$BOT_TOKEN_NOTIFY"
     CHAT_ID_ALERT="$CHAT_ID_NOTIFY"
 else
-    BOT_TOKEN_ALERT=$(ask "Bot Token Telegram (alert)")
-    CHAT_ID_ALERT=$(ask "Chat ID Telegram (alert)")
+    BOT_TOKEN_ALERT=$(ask "Bot Token Telegram (alert)" "$DEF_BOT_ALERT")
+    CHAT_ID_ALERT=$(ask "Chat ID Telegram (alert)" "$DEF_CHAT_ALERT")
 fi
 
 echo ""
 echo -e "${CYAN}--- Posizione iGate ---${NC}"
-LATITUDE=$(ask "Latitudine decimale (es. 43.68047)")
-LONGITUDE=$(ask "Longitudine decimale (es. 11.52987)")
+LATITUDE=$(ask "Latitudine decimale (es. 43.68047)" "${DEF_LAT:-43.68047}")
+LONGITUDE=$(ask "Longitudine decimale (es. 11.52987)" "${DEF_LON:-11.52987}")
 
 # Geocoding inverso
 echo ""
@@ -111,8 +149,8 @@ echo ""
 echo -e "${CYAN}--- MeshCom (opzionale) ---${NC}"
 HAS_MESHCOM=$(ask_yn "Hai un nodo MeshCom da integrare?" "n")
 if [ "$HAS_MESHCOM" = "True" ]; then
-    MESHCOM_IP=$(ask "IP locale nodo MeshCom" "192.168.2.12")
-    MESHCOM_CALLSIGN=$(ask "Callsign nodo MeshCom" "IU5MGF-12")
+    MESHCOM_IP=$(ask "IP locale nodo MeshCom" "${DEF_MESHCOM_IP:-192.168.2.12}")
+    MESHCOM_CALLSIGN=$(ask "Callsign nodo MeshCom" "${DEF_MESHCOM_CALLSIGN:-}")
 else
     MESHCOM_IP=""
     MESHCOM_CALLSIGN=""
@@ -120,7 +158,7 @@ fi
 
 echo ""
 echo -e "${CYAN}--- Database ---${NC}"
-DB_RETENTION=$(ask "Retention pacchetti (giorni)" "30")
+DB_RETENTION=$(ask "Retention pacchetti (giorni)" "${DEF_DB_RETENTION:-30}")
 
 echo ""
 echo -e "${CYAN}--- Timezone ---${NC}"
