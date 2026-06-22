@@ -3,7 +3,7 @@ import sys, json, socket, sqlite3, logging, re, requests
 from datetime import datetime, timezone
 
 sys.path.insert(0, "/usr/local/lib/lora-aprs")
-from config import DB_PATH, MESHCOM_CALLSIGN, BOT_TOKEN_NOTIFY, CHAT_ID_NOTIFY, TIMEZONE
+from config import DB_PATH, MESHCOM_CALLSIGN, BOT_TOKEN_NOTIFY, CHAT_ID_NOTIFY, BOT_TOKEN_ALERT, CHAT_ID_ALERT, CALLSIGN, TIMEZONE
 
 import pytz
 ROME = pytz.timezone(TIMEZONE)
@@ -95,13 +95,32 @@ def handle_msg(d, db):
 def notify_message(callsign, dst, text):
     time_str = datetime.now(ROME).strftime("%H:%M")
     dest_str = f" -> {dst}" if dst and dst not in ("*", "222") else " -> ALL"
-    msg = (
-        "\U0001f4e1 MeshCom " + MESHCOM_CALLSIGN + "\n"
-        + f"\U0001f4ac {callsign}{dest_str}\n"
-        + f"\U0001f4dd {text}\n"
-        + f"\u23f1 {time_str}"
-    )
-    send_notify(msg)
+    # Controlla se il messaggio è diretto al nostro nodo
+    is_direct = dst and (MESHCOM_CALLSIGN in dst or CALLSIGN in dst)
+    if is_direct:
+        msg = (
+            "\U0001f514 <b>MESSAGGIO DIRETTO MeshCom</b>\n"
+            + f"\U0001f4e1 Da: <b>{callsign}</b> -> <b>{dst}</b>\n"
+            + f"\U0001f4dd {text}\n"
+            + f"\u23f1 {time_str}"
+        )
+        send_notify(msg)
+        # Invia anche su bot alert per maggiore visibilità
+        try:
+            import requests as _req
+            _req.post(f"https://api.telegram.org/bot{BOT_TOKEN_ALERT}/sendMessage",
+                data={"chat_id": CHAT_ID_ALERT, "text": msg.replace("<b>","").replace("</b>",""), "parse_mode": "HTML"},
+                timeout=5)
+        except Exception as e:
+            log.warning(f"alert notify error: {e}")
+    else:
+        msg = (
+            "\U0001f4e1 MeshCom " + MESHCOM_CALLSIGN + "\n"
+            + f"\U0001f4ac {callsign}{dest_str}\n"
+            + f"\U0001f4dd {text}\n"
+            + f"\u23f1 {time_str}"
+        )
+        send_notify(msg)
 
 def handle_tele(d, db):
     src = d.get("src", "")
