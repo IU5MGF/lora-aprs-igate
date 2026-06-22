@@ -258,6 +258,39 @@ def stations_api():
         "best_rssi": r["best_rssi"], "last_rssi": r["last_rssi"],
         "last_path": r["last_path"] or "-"} for r in rows])
 
+@app.route("/api/stations/csv")
+def stations_csv():
+    import csv, io
+    db = get_db()
+    rows = db.execute("""SELECT callsign, first_seen, last_seen, total_packets,
+        max_distance, max_distance_date, best_rssi, last_rssi, last_lat, last_lon, last_path
+        FROM stations ORDER BY total_packets DESC""").fetchall()
+    db.close()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Callsign","Prima vista","Ultima vista","Pacchetti totali",
+        "Distanza max (km)","Data dist max","RSSI migliore","Ultimo RSSI",
+        "Lat","Lon","Ultimo path"])
+    for r in rows:
+        writer.writerow([
+            r["callsign"],
+            r["first_seen"][:10] if r["first_seen"] else "",
+            r["last_seen"][:16].replace("T"," ") if r["last_seen"] else "",
+            r["total_packets"],
+            round(r["max_distance"],1) if r["max_distance"] else "",
+            r["max_distance_date"][:10] if r["max_distance_date"] else "",
+            r["best_rssi"] or "",
+            r["last_rssi"] or "",
+            round(r["last_lat"],5) if r["last_lat"] else "",
+            round(r["last_lon"],5) if r["last_lon"] else "",
+            r["last_path"] or ""
+        ])
+    output.seek(0)
+    from flask import Response
+    from datetime import datetime
+    filename = f"stazioni_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
+    return Response(output.getvalue(), mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"})
 @app.route("/api/stations_summary")
 def stations_summary():
     db = get_db()

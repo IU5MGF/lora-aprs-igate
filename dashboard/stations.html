@@ -18,7 +18,7 @@
 <div class="stat-card"><div class="stat-label">Piu ascoltata</div><div class="stat-value" style="font-size:16px" id="s-mostcall">-</div><div class="stat-unit" id="s-mostpkt">pacchetti totali</div></div>
 </div>
 <div class="panel">
-<div class="panel-header"><span class="panel-title">Registro stazioni</span><input class="search-box" id="search" placeholder="Cerca callsign..." oninput="filterTable()"></div>
+<div class="panel-header"><span class="panel-title">Registro stazioni</span><div style="display:flex;gap:8px;align-items:center"><input class="search-box" id="search" placeholder="Cerca callsign..." oninput="filterTable()"><a href="/api/stations/csv" download style="font-family:var(--mono);font-size:11px;padding:4px 12px;background:var(--accent3);color:var(--bg);text-decoration:none;letter-spacing:1px">&#11015; CSV</a></div></div>
 <div style="overflow-x:auto"><table class="stations-table" id="stations-table">
 <thead><tr>
 <th onclick="sortTable(0)">Callsign</th>
