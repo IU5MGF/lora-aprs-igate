@@ -92,6 +92,12 @@
     <div class="stat-card"><div class="label">Gateway</div><div class="value" id="s-gw">—</div><div class="sub" id="s-uptime">—</div></div>
   </div>
 
+  <!-- TAB BAR -->
+  <div style="display:flex;gap:4px;margin-bottom:12px;border-bottom:1px solid var(--border,#1e2a35)">
+    <button id="tab-nodi" onclick="switchTab('nodi')" style="font-family:var(--mono);font-size:11px;padding:8px 18px;border:none;border-bottom:2px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;letter-spacing:1px">🔊 NODI</button>
+    <button id="tab-rxlog" onclick="switchTab('rxlog')" style="font-family:var(--mono);font-size:11px;padding:8px 18px;border:none;border-bottom:2px solid transparent;background:transparent;color:var(--text-dim);cursor:pointer;letter-spacing:1px">📋 RX LOG</button>
+    <button id="tab-msg" onclick="switchTab('msg')" style="font-family:var(--mono);font-size:11px;padding:8px 18px;border:none;border-bottom:2px solid transparent;background:transparent;color:var(--text-dim);cursor:pointer;letter-spacing:1px">💬 MESSAGGI</button>
+  </div>
   <!-- MHEARD -->
   <div style="padding:10px 16px;font-size:11px;color:var(--text-dim);display:flex;gap:16px;flex-wrap:wrap;background:var(--bg2,#0f1318);border:1px solid var(--border,#1e2a35);border-radius:4px;margin-bottom:12px">
   <span><b>TXT</b> = messaggio testuale</span>
@@ -101,7 +107,7 @@
   <span><b>SYNC</b> = sincronizzazione orario (time-sync)</span>
   <span><b>H</b> = Hop/ritrasmissione mesh</span>
 </div>
-<div class="section">
+<div class="section" id="section-nodi">
     <div class="section-header">
       <span>🔊 Nodi sentiti (MHeard)</span>
       <span id="mheard-age" class="mono"></span>
@@ -116,7 +122,7 @@
   </div>
 
   <!-- RXLOG -->
-  <div class="section">
+  <div class="section" id="section-rxlog" style="display:none">
     <div class="section-header">
       <span>📋 RX Log (ultimi 50 pacchetti)</span>
       <span id="rxlog-count" class="mono"></span>
@@ -128,11 +134,42 @@
       </tr></thead>
       <tbody id="rxlog-body"></tbody>
     </table>
+    <div style="padding:10px 16px;font-size:11px;color:var(--text-dim);display:flex;gap:16px;flex-wrap:wrap;margin-top:4px">
+      <span><b>TXT</b> = messaggio testuale</span>
+      <span><b>HEY</b> = beacon/keepalive periodico</span>
+      <span><b>POS</b> = pacchetto posizione GPS</span>
+      <span><b>HG</b> = HomeGateway (verso internet/APRS-IS)</span>
+      <span><b>H</b> = Hop/ritrasmissione mesh</span>
+      <span><b>SYNC</b> = sincronizzazione orario (time-sync)</span>
+    </div>
+  </div>
+  <!-- MESSAGGI -->
+  <div class="section" id="section-msg" style="display:none">
+    <div class="section-header">
+      <span>💬 Messaggi ricevuti</span>
+      <span id="messages-count" class="mono"></span>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Ora</th><th>Da</th><th>A</th><th>Messaggio</th>
+      </tr></thead>
+      <tbody id="messages-body"></tbody>
+    </table>
+  </div>
+    </table>
   </div>
 
 </div>
 
 <script>
+function switchTab(tab) {
+  ['nodi','rxlog','msg'].forEach(t => {
+    document.getElementById('section-' + t).style.display = t === tab ? '' : 'none';
+    const btn = document.getElementById('tab-' + t);
+    btn.style.color = t === tab ? 'var(--accent)' : 'var(--text-dim)';
+    btn.style.borderBottom = t === tab ? '2px solid var(--accent)' : '2px solid transparent';
+  });
+}
 const REFRESH = 60000;
 
 function rssiColor(v) {
@@ -208,8 +245,26 @@ async function loadRxlog() {
   }).join('');
 }
 
+async function loadMessages() {
+  const rows = await fetch('/api/meshcom/messages').then(r => r.json());
+  document.getElementById('messages-count').textContent = `${rows.length} messaggi`;
+  const tb = document.getElementById('messages-body');
+  tb.innerHTML = rows.map(r => {
+    const isDirect = r.dest && r.dest !== '*' && r.dest !== '222' && !r.dest.endsWith(',*') && !r.dest.endsWith(',222');
+    const rowStyle = isDirect ? "background:rgba(0,212,255,0.05)" : "";
+    const destBadge = isDirect
+      ? `<span style="color:var(--accent);font-weight:bold">${r.dest}</span>`
+      : `<span style="color:var(--text-dim)">${r.dest || '*'}</span>`;
+    return `<tr style="${rowStyle}">
+      <td class="mono" style="white-space:nowrap">${r.time}</td>
+      <td><b style="color:var(--accent)">${r.callsign || '—'}</b></td>
+      <td>${destBadge}</td>
+      <td style="color:var(--text)">${r.message || '—'}</td>
+    </tr>`;
+  }).join('');
+}
 async function refresh() {
-  await Promise.all([loadStatus(), loadMheard(), loadRxlog()]);
+  await Promise.all([loadStatus(), loadMheard(), loadRxlog(), loadMessages()]);
 }
 
 refresh();

@@ -549,6 +549,27 @@ def meshcom_status():
         "online":      minutes_ago < 5,
     })
 
+@app.route("/api/meshcom/messages")
+def meshcom_messages():
+    if not HAS_MESHCOM:
+        return jsonify([])
+    db = get_db()
+    rows = db.execute("""
+        SELECT timestamp, callsign, dest, message
+        FROM meshcom_messages
+        ORDER BY id DESC LIMIT 200
+    """).fetchall()
+    db.close()
+    result = []
+    for r in rows:
+        rt = rome_time(r["timestamp"])
+        result.append({
+            "time": rt.strftime("%d/%m %H:%M:%S") if rt else r["timestamp"][:19],
+            "callsign": r["callsign"],
+            "dest": r["dest"],
+            "message": r["message"]
+        })
+    return jsonify(result)
 @app.route("/api/meshcom/mheard")
 def meshcom_mheard():
     db = get_db()
