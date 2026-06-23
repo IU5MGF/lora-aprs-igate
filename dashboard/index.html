@@ -23,7 +23,15 @@ async function updateMeshcomDot() {
       dot.style.boxShadow = '0 0 6px #4a6070';
       dot.title = 'MeshCom offline';
     }
-  } catch(e) {}
+  } catch(e) {
+    const dot = document.getElementById('meshcom-dot');
+    if (dot) {
+      dot.style.display = '';
+      dot.style.background = '#4a6070';
+      dot.style.boxShadow = '0 0 6px #4a6070';
+      dot.title = 'MeshCom non raggiungibile';
+    }
+  }
 }
 updateMeshcomDot();
 setInterval(updateMeshcomDot, 60000);

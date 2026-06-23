@@ -546,7 +546,7 @@ def meshcom_status():
         "uptime_start": row["uptime_start"],
         "last_seen":   rt.strftime("%H:%M:%S") if rt else "-",
         "minutes_ago": minutes_ago,
-        "online":      minutes_ago < 5,
+        "online":      minutes_ago < 3,
     })
 
 @app.route("/api/meshcom/messages")
