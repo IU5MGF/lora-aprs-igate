@@ -60,6 +60,7 @@ async function doReboot(target){
 <div class="section-title">Aggiornamento sistema (apt update &amp; upgrade)</div>
 <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
 <input type="password" id="update-pwd" autocomplete="off" placeholder="Password..." style="font-family:var(--mono);font-size:11px;background:var(--bg);color:var(--text);border:1px solid var(--border);padding:6px 10px;outline:none;width:160px">
+<button onclick="doGitUpdate()" id="git-btn" style="font-family:var(--mono);font-size:11px;padding:6px 16px;background:#bc8cff;color:var(--bg);border:none;cursor:pointer;letter-spacing:1px">&#8679; AGGIORNA DA GITHUB</button>
 <button onclick="doSystemUpdate()" id="update-btn" style="font-family:var(--mono);font-size:11px;padding:6px 16px;background:#ff9f00;color:var(--bg);border:none;cursor:pointer;letter-spacing:1px">&#8593; AGGIORNA SISTEMA</button>
 <span id="update-msg" style="font-family:var(--mono);font-size:11px;color:var(--accent3)"></span>
 </div>
@@ -111,6 +112,30 @@ async function doReboot(target){
   }
 }
 let updatePollInterval = null;
+async function doGitUpdate(){
+  const pwd = document.getElementById('update-pwd').value;
+  document.getElementById('update-msg').textContent = 'Avvio aggiornamento GitHub...';
+  document.getElementById('git-btn').disabled = true;
+  document.getElementById('update-btn').disabled = true;
+  try{
+    const r = await fetch('/api/git-update', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:pwd})});
+    const d = await r.json();
+    document.getElementById('update-msg').textContent = d.msg;
+    document.getElementById('update-msg').style.color = d.ok ? 'var(--accent3)' : 'var(--accent2)';
+    document.getElementById('update-pwd').value = '';
+    if(d.ok){
+      document.getElementById('update-log').style.display = 'block';
+      pollUpdateStatus();
+    } else {
+      document.getElementById('git-btn').disabled = false;
+      document.getElementById('update-btn').disabled = false;
+    }
+  }catch(e){
+    document.getElementById('update-msg').textContent = 'Errore connessione';
+    document.getElementById('git-btn').disabled = false;
+    document.getElementById('update-btn').disabled = false;
+  }
+}
 async function doSystemUpdate(){
   const pwd = document.getElementById('update-pwd').value;
   document.getElementById('update-msg').textContent = 'Avvio...';

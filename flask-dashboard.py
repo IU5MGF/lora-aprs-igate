@@ -371,6 +371,25 @@ def reboot():
     else:
         subprocess.Popen(["sudo", "reboot"])
         return jsonify({"ok": True, "msg": "Server in riavvio..."})
+@app.route("/api/git-update", methods=["POST"])
+def git_update():
+    password = request.json.get("password", "")
+    if password != IGATE_REBOOT_PW:
+        return jsonify({"ok": False, "msg": "Password errata"})
+    if os.path.exists("/tmp/system-update.running"):
+        return jsonify({"ok": False, "msg": "Aggiornamento gia in corso"})
+    open("/tmp/system-update.running", "w").close()
+    import subprocess as _sp
+    script_dir = os.path.expanduser("~/lora-aprs-igate")
+    cmd = (
+        f"cd {script_dir} && "
+        f"bash update.sh >> /tmp/system-update.log 2>&1; "
+        "rm -f /tmp/system-update.running; "
+        "echo '=== COMPLETATO ===' >> /tmp/system-update.log"
+    )
+    open("/tmp/system-update.log", "w").close()
+    subprocess.Popen(cmd, shell=True)
+    return jsonify({"ok": True, "msg": "Aggiornamento da GitHub avviato..."})
 @app.route("/api/system-update", methods=["POST"])
 def system_update():
     password = request.json.get("password", "")
