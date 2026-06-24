@@ -51,6 +51,7 @@ header{background:#0f1318;border-bottom:1px solid #1e2a35;padding:12px 24px;disp
   <span style="color:#ffd700">&#9679; Digipeated</span>
   <span style="color:#bc8cff">&#9679; MeshCom</span>
   <span style="color:#ff8000">&#9679; Nodo locale</span>
+  <button class="toggle-btn active" id="rep-btn" onclick="toggleFilter('rep')">D-STAR/EL ON</button>
   <button class="toggle-btn" id="heatmap-btn" onclick="toggleHeatmap()">HEATMAP OFF</button>
   <select id="time-range" onchange="loadMap()" style="font-family:'Share Tech Mono',monospace;font-size:10px;padding:4px 8px;border:1px solid #1e2a35;background:#0f1318;color:#00d4ff;border-radius:3px;cursor:pointer">
     <option value="15">15 min</option>
@@ -135,6 +136,7 @@ async function loadMap() {
       const marker = L.marker([s.lat, s.lon], {
         icon: L.divIcon({ className: "", html: html, iconSize: [size, size], iconAnchor: [size/2, size/2] })
       });
+      marker._callsign = s.callsign;
       marker.bindPopup(
         "<b>" + s.callsign + "</b><br>"
         + "Tipo: " + (s.type === "rf" ? "RF diretta" : s.type === "meshcom" ? "MeshCom" : s.type === "own" ? "Nodo locale" : "Digipeated") + "<br>"
@@ -188,6 +190,39 @@ async function loadHeatmap() {
       gradient: {0.2: 'blue', 0.4: 'cyan', 0.6: 'lime', 0.8: 'yellow', 1.0: 'red'}
     }).addTo(map);
   } catch(e) { console.error(e); }
+}
+
+let showAprs = true;
+let showRep = true;
+
+function isAprs(callsign) {
+  // Suffisso numerico -1 a -15
+  return /^[A-Z0-9]+-\d{1,2}$/.test(callsign);
+}
+
+function toggleFilter(type) {
+  if (type === 'aprs') {
+    showAprs = !showAprs;
+    const btn = document.getElementById('aprs-btn');
+    btn.textContent = showAprs ? 'APRS ON' : 'APRS OFF';
+    showAprs ? btn.classList.add('active') : btn.classList.remove('active');
+  } else {
+    showRep = !showRep;
+    const btn = document.getElementById('rep-btn');
+    btn.textContent = showRep ? 'D-STAR/EL ON' : 'D-STAR/EL OFF';
+    showRep ? btn.classList.add('active') : btn.classList.remove('active');
+  }
+  // Aggiorna visibilità marker
+  markers.forEach(function(m) {
+    const call = m._callsign;
+    if (!call) return;
+    const aprs = isAprs(call);
+    if ((aprs && !showAprs) || (!aprs && !showRep)) {
+      map.removeLayer(m);
+    } else {
+      m.addTo(map);
+    }
+  });
 }
 
 function toggleHeatmap() {
