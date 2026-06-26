@@ -39,6 +39,13 @@ def save_alert_state():
         print(f"Save alert state error: {e}", flush=True)
 
 alert_state = load_alert_state()
+# Assicura che alert_state.json sia scrivibile dall'utente corrente
+try:
+    import stat
+    if os.path.exists(ALERT_STATE_FILE):
+        os.chmod(ALERT_STATE_FILE, stat.S_IRUSR|stat.S_IWUSR|stat.S_IRGRP|stat.S_IROTH)
+except Exception:
+    pass
 
 def log_event(event_type, message):
     try:
