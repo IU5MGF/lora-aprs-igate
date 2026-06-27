@@ -15,7 +15,7 @@ from config import (
     DB_PATH, TIMEZONE, DATA_DIR
 )
 
-POLL_INTERVAL = 30
+POLL_INTERVAL = 5
 ROME = pytz.timezone(TIMEZONE)
 
 def now_rome():
