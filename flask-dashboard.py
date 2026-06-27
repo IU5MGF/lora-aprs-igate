@@ -10,7 +10,8 @@ import pytz
 sys.path.insert(0, "/usr/local/lib/lora-aprs")
 from config import (
     CALLSIGN, DB_PATH, TIMEZONE, DATA_DIR,
-    IGATE_IP, IGATE_REBOOT_PW, HAS_SSD, SSD_MOUNT
+    IGATE_IP, IGATE_REBOOT_PW, HAS_SSD, SSD_MOUNT,
+    LATITUDE, LONGITUDE
 )
 try:
     from config import HAS_MESHCOM, MESHCOM_CALLSIGN
@@ -185,6 +186,7 @@ def map_data():
     result = [{"callsign": r["callsign"], "lat": r["lat"], "lon": r["lon"],
         "rssi": r["rssi"], "distance": r["distance"],
         "type": 'meshcom' if r['path'] == 'MESHCOM' else ('digi' if r['path'] and '*' in r['path'] else 'rf'),
+        "path": r["path"] or "",
         "last_ts": r["timestamp"]} for r in rows]
     for r in own_rows:
         result.append({"callsign": r["callsign"], "lat": r["lat"], "lon": r["lon"],
@@ -192,6 +194,14 @@ def map_data():
             "type": "own", "last_ts": r["timestamp"]})
     return jsonify(result)
 
+@app.route("/api/stations/coords")
+def stations_coords():
+    db = get_db()
+    rows = db.execute("SELECT callsign, last_lat, last_lon FROM stations WHERE last_lat IS NOT NULL AND last_lon IS NOT NULL").fetchall()
+    db.close()
+    result = {r["callsign"]: {"lat": r["last_lat"], "lon": r["last_lon"]} for r in rows}
+    result[CALLSIGN] = {"lat": LATITUDE, "lon": LONGITUDE}
+    return jsonify(result)
 @app.route("/api/tracks")
 def tracks():
     minutes = request.args.get("minutes", "60")
