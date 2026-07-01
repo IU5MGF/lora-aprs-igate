@@ -189,9 +189,9 @@ async function loadBeacon(){
     if(timeEl) timeEl.textContent = d.time;
     if(unitEl) unitEl.textContent = d.online ? d.minutes_ago+' min fa' : 'OFFLINE';
     if(dotEl){
-      const color = d.online ? 'var(--accent3)' : 'var(--accent2)';
-      dotEl.style.background = color;
-      dotEl.style.boxShadow = '0 0 6px '+color;
+      const circle = document.getElementById('beacon-dot-circle');
+      const color = d.online ? 'var(--accent3)' : '#4a6070';
+      if(circle){ circle.style.background = color; circle.style.boxShadow = '0 0 5px '+color; }
     }
     const card = timeEl ? timeEl.closest('.stat-card') : null;
     if(card) card.style.borderTopColor = d.online ? 'var(--accent3)' : 'var(--accent2)';
