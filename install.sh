@@ -278,7 +278,7 @@ sudo mkdir -p "$DATA_DIR"
 # =============================================================================
 echo ""
 echo -e "${GREEN}Copia script in /usr/local/bin/...${NC}"
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)/scripts"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SCRIPTS="mqtt-telegram.py alerts.py cleanup.py system-stats.py daily-stats.py syslog-collector.py mqtt-watchdog.sh flask-dashboard.py"
 for s in $SCRIPTS; do
     if [ -f "$SCRIPT_DIR/$s" ]; then
@@ -329,15 +329,6 @@ SVCEOF
     sudo systemctl restart "$name" 2>/dev/null || true
     echo "  ✓ ${name}.service"
 }
-
-echo -e "${CYAN}--- Inizializzazione database ---${NC}"
-sudo python3 -c "
-import sys
-sys.path.insert(0, '/usr/local/lib/lora-aprs')
-sys.path.insert(0, '/usr/local/bin')
-from syslog_collector import init_db
-init_db()
-" 2>/dev/null || sudo python3 /usr/local/bin/syslog-collector.py --init-only 2>/dev/null || echo -e "${YELLOW}Avviso: inizializzazione DB posticipata al primo avvio servizio${NC}"
 
 echo -e "${CYAN}--- Inizializzazione database ---${NC}"
 sudo python3 /usr/local/bin/syslog-collector.py --init-only
