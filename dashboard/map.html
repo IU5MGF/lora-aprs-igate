@@ -129,10 +129,27 @@ async function loadMap() {
       const color = s.type === "rf" ? "#00ff9f" : s.type === "meshcom" ? "#bc8cff" : s.type === "own" ? "#ff8000" : "#ffd700";
       const size = s.type === "own" ? 14 : 10;
       const ora = addTwoHours(s.last_ts);
-      const html = "<div style='position:relative'>"
-        + "<div style='background:" + color + ";width:" + size + "px;height:" + size + "px;border-radius:50%;border:2px solid white;box-shadow:0 0 6px " + color + "'></div>"
-        + makeLabel(s.callsign, color)
-        + "</div>";
+      // Determina se è un tracker mobile (suffisso numerico diverso da -10/-11/-12/-13)
+      const ssidMatch = s.callsign.match(/-(\d+)$/);
+      const ssid = ssidMatch ? parseInt(ssidMatch[1]) : null;
+      const isMobile = ssid !== null && ![10,11,12,13].includes(ssid);
+      let html;
+      if (isMobile) {
+        html = "<div style='position:relative'>"
+          + "<div style='font-size:16px;line-height:1;filter:drop-shadow(0 0 3px " + color + ")'>🚗</div>"
+          + makeLabel(s.callsign, color)
+          + "</div>";
+      } else if (ssid !== null && ssid >= 10 && ssid <= 13) {
+        html = "<div style='position:relative'>"
+          + "<div style='background:" + color + ";width:20px;height:20px;border-radius:50%;border:2px solid white;box-shadow:0 0 6px " + color + ";display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:bold;color:#000;letter-spacing:-0.5px'>GW</div>"
+          + makeLabel(s.callsign, color)
+          + "</div>";
+      } else {
+        html = "<div style='position:relative'>"
+          + "<div style='background:" + color + ";width:" + size + "px;height:" + size + "px;border-radius:50%;border:2px solid white;box-shadow:0 0 6px " + color + "'></div>"
+          + makeLabel(s.callsign, color)
+          + "</div>";
+      }
       const marker = L.marker([s.lat, s.lon], {
         icon: L.divIcon({ className: "", html: html, iconSize: [size, size], iconAnchor: [size/2, size/2] })
       });
