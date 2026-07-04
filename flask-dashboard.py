@@ -158,7 +158,8 @@ def map_data():
     own_callsigns = [CALLSIGN]
     try:
         from config import MESHCOM_CALLSIGN
-        own_callsigns.append(MESHCOM_CALLSIGN)
+        if MESHCOM_CALLSIGN:
+            own_callsigns.append(MESHCOM_CALLSIGN)
     except: pass
     rows = db.execute("""
         SELECT callsign, lat, lon, rssi, distance, timestamp, path
