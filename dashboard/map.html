@@ -157,6 +157,16 @@ async function loadMap() {
   try {
     if(window.trackLayers) window.trackLayers.forEach(l => map.removeLayer(l));
     window.trackLayers = [];
+    const trackColors = ['#00ff9f','#ff6b35','#00d4ff','#ff4dff','#ffd700','#ff4444','#4dffb4','#ff9f00'];
+    const trackColorMap = {};
+    let trackColorIdx = 0;
+    function getTrackColor(callsign) {
+      if (!trackColorMap[callsign]) {
+        trackColorMap[callsign] = trackColors[trackColorIdx % trackColors.length];
+        trackColorIdx++;
+      }
+      return trackColorMap[callsign];
+    }
     const minutes2 = document.getElementById("time-range").value;
     const tracks = await (await fetch("/api/tracks?minutes=" + minutes2)).json();
     Object.keys(tracks).forEach(function(call){
@@ -164,11 +174,12 @@ async function loadMap() {
       if(!t.points || t.points.length < 2) return;
       const color = t.type === "rf" ? "#00ff9f" : t.type === "meshcom" ? "#bc8cff" : "#ffd700";
       const latlngs = t.points.map(p => [p.lat, p.lon]);
-      const line = L.polyline(latlngs, {color: "#ff4444", weight: 4, opacity: 0.85}).addTo(map);
+      const trackColor = getTrackColor(call);
+      const line = L.polyline(latlngs, {color: trackColor, weight: 5, opacity: 0.9}).addTo(map);
       window.trackLayers.push(line);
       t.points.forEach(function(p, i){
         if(i === t.points.length-1) return;
-        const dot = L.circleMarker([p.lat, p.lon], {radius: 3, color: color, fillColor: color, fillOpacity: 0.6, weight: 1}).addTo(map);
+        const dot = L.circleMarker([p.lat, p.lon], {radius: 3, color: trackColor, fillColor: trackColor, fillOpacity: 0.8, weight: 1}).addTo(map);
         dot.bindTooltip(call + " " + p.time, {permanent: false});
         window.trackLayers.push(dot);
       });
