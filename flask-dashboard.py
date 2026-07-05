@@ -87,9 +87,9 @@ def packets():
     db = get_db()
     rows = db.execute("""
         SELECT timestamp, callsign, path, rssi, snr, distance, comment FROM packets
-        WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL AND callsign != ?
+        WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL
         ORDER BY id DESC LIMIT 50
-    """, (CALLSIGN,)).fetchall()
+    """).fetchall()
     db.close()
     result = []
     for r in rows:
@@ -162,7 +162,7 @@ def map_data():
             own_callsigns.append(MESHCOM_CALLSIGN)
     except: pass
     rows = db.execute("""
-        SELECT callsign, lat, lon, rssi, distance, timestamp, path
+        SELECT callsign, lat, lon, rssi, distance, timestamp, path, voltage
         FROM packets WHERE crc_ok=1 AND msg_type='RX'
         AND callsign IS NOT NULL AND callsign != ?
         AND lat IS NOT NULL AND lon IS NOT NULL
@@ -177,7 +177,7 @@ def map_data():
     """, (CALLSIGN, minutes, CALLSIGN, minutes)).fetchall()
     # aggiungi propri nodi
     own_rows = db.execute("""
-        SELECT callsign, lat, lon, rssi, distance, timestamp, path
+        SELECT callsign, lat, lon, rssi, distance, timestamp, path, voltage
         FROM packets WHERE callsign IN ({})
         AND lat IS NOT NULL AND lon IS NOT NULL
         AND id IN (SELECT MAX(id) FROM packets WHERE callsign IN ({}) GROUP BY callsign)
@@ -188,11 +188,12 @@ def map_data():
         "rssi": r["rssi"], "distance": r["distance"],
         "type": 'meshcom' if r['path'] == 'MESHCOM' else ('digi' if r['path'] and '*' in r['path'] else 'rf'),
         "path": r["path"] or "",
+        "voltage": r["voltage"],
         "last_ts": r["timestamp"]} for r in rows]
     for r in own_rows:
         result.append({"callsign": r["callsign"], "lat": r["lat"], "lon": r["lon"],
             "rssi": r["rssi"], "distance": r["distance"],
-            "type": "own", "last_ts": r["timestamp"]})
+            "type": "own", "voltage": r["voltage"], "last_ts": r["timestamp"]})
     return jsonify(result)
 
 @app.route("/api/stations/coords")
@@ -319,16 +320,19 @@ def stations_summary():
 @app.route("/api/igate_beacon")
 def igate_beacon():
     db = get_db()
-    row = db.execute("SELECT timestamp FROM packets WHERE callsign=? AND msg_type='RX' ORDER BY id DESC LIMIT 1", (CALLSIGN,)).fetchone()
+    row = db.execute("SELECT timestamp, voltage FROM packets WHERE callsign=? AND msg_type='RX' ORDER BY id DESC LIMIT 1", (CALLSIGN,)).fetchone()
+    volt_row = db.execute("SELECT voltage FROM packets WHERE callsign=? AND voltage IS NOT NULL ORDER BY id DESC LIMIT 1", (CALLSIGN,)).fetchone()
     db.close()
     if row:
         rt = rome_time(row["timestamp"])
         minutes_ago = int((datetime.now(timezone.utc) -
             datetime.strptime(row["timestamp"][:19], "%Y-%m-%dT%H:%M:%S")
             .replace(tzinfo=timezone.utc)).total_seconds() / 60)
+        voltage = volt_row["voltage"] if volt_row else None
         return jsonify({"time": rt.strftime("%H:%M") if rt else "-",
-            "minutes_ago": minutes_ago, "online": minutes_ago < 15})
-    return jsonify({"time": "-", "minutes_ago": 999, "online": False})
+            "minutes_ago": minutes_ago, "online": minutes_ago < 15,
+            "voltage": voltage})
+    return jsonify({"time": "-", "minutes_ago": 999, "online": False, "voltage": None})
 @app.route("/api/daily_stats")
 def daily_stats_api():
     db = get_db()
