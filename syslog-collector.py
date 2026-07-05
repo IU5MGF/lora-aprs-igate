@@ -162,7 +162,7 @@ def parse_syslog(line):
                 t = volt_match.group(1)
                 try:
                     v_raw = (ord(t[0]) - 33) * 91 + (ord(t[1]) - 33)
-                    voltage = round(v_raw / 223.6, 2)
+                    voltage = round(v_raw / 46.38, 2)
                 except: pass
             comment = re.sub(r'\|[^|]+\|$', '', comment).strip() or None
         return msg_type, callsign, path, crc_ok, rssi, snr, freq_err, distance, lat, lon, comment, voltage
