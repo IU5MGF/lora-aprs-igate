@@ -15,10 +15,14 @@ Software completo per un iGate LoRa APRS basato su Raspberry Pi, con notifiche T
 - Alert Telegram per messaggi MeshCom diretti al proprio callsign
 - Dashboard web Flask con mappa OpenStreetMap, heatmap RF, tracker, statistiche
 - Mappa con filtro D-STAR/EL per nascondere ripetitori voce
-- Classificazione marker: RF (verde), DIGI via X (giallo), MeshCom (viola), Nodo locale (arancio)
+- Icone marker dinamiche: 🚗 tracker mobili, GW gateway/digipeater (-10/-13), pallino per stazioni base
+- Tracce tracker con colori dinamici per callsign (ogni tracker ha colore diverso)
+- Poligono coverage RF storico (convex hull) — si espande automaticamente con nuove ricezioni
 - Menu a tendina sulla mappa per finestra temporale (15 min → 24 ore)
+- Aggiornamento mappa ogni 10 secondi
 - Database SQLite con retention configurabile
 - Esportazione CSV stazioni ricevute
+- Tensione batteria iGate visibile in stat-card e popup mappa
 - Report giornaliero automatico alle 08:00
 - Report sistema ogni 2 ore (temperatura, RAM, SSD, uptime)
 - Reboot automatico dopo 120 minuti di silenzio radio
@@ -170,7 +174,7 @@ Accessibile su `http://IP_RPi:5000`
 | Pagina | Descrizione |
 |---|---|
 | / | Dashboard principale con statistiche giornaliere e LED stato iGate/MeshCom |
-| /map | Mappa OSM con posizioni, heatmap RF, tracker, filtro D-STAR/EL, finestra temporale configurabile |
+| /map | Mappa OSM con posizioni, heatmap RF, tracker con colori dinamici, coverage RF, icone marker dinamiche, filtro D-STAR/EL, finestra temporale configurabile, aggiornamento 10s |
 | /stations | Registro storico stazioni ricevute con esportazione CSV |
 | /stats | Grafici statistiche giornaliere RF/DIGI |
 | /server | Stato RPi, reboot protetto da password, aggiornamento sistema |
