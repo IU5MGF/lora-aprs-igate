@@ -196,6 +196,32 @@ def map_data():
             "type": "own", "voltage": r["voltage"], "last_ts": r["timestamp"]})
     return jsonify(result)
 
+@app.route("/api/coverage")
+def coverage():
+    db = get_db()
+    rows = db.execute("SELECT lat, lon FROM coverage_points").fetchall()
+    db.close()
+    points = [[r["lat"], r["lon"]] for r in rows]
+    points.append([LATITUDE, LONGITUDE])
+    if len(points) < 3:
+        return jsonify([])
+    def cross(O, A, B):
+        return (A[0]-O[0])*(B[1]-O[1]) - (A[1]-O[1])*(B[0]-O[0])
+    pts = sorted(set(map(tuple, points)))
+    if len(pts) < 3:
+        return jsonify([list(p) for p in pts])
+    lower = []
+    for p in pts:
+        while len(lower) >= 2 and cross(lower[-2], lower[-1], p) <= 0:
+            lower.pop()
+        lower.append(p)
+    upper = []
+    for p in reversed(pts):
+        while len(upper) >= 2 and cross(upper[-2], upper[-1], p) <= 0:
+            upper.pop()
+        upper.append(p)
+    hull = lower[:-1] + upper[:-1]
+    return jsonify([list(p) for p in hull])
 @app.route("/api/stations/coords")
 def stations_coords():
     db = get_db()

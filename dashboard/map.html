@@ -52,6 +52,7 @@ header{background:#0f1318;border-bottom:1px solid #1e2a35;padding:12px 24px;disp
   <span style="color:#bc8cff">&#9679; MeshCom</span>
   <span style="color:#ff8000">&#9679; Nodo locale</span>
   <button class="toggle-btn active" id="rep-btn" onclick="toggleFilter('rep')">D-STAR/EL ON</button>
+  <button class="toggle-btn" id="coverage-btn" onclick="toggleCoverage()">COVERAGE OFF</button>
   <button class="toggle-btn" id="heatmap-btn" onclick="toggleHeatmap()">HEATMAP OFF</button>
   <select id="time-range" onchange="loadMap()" style="font-family:'Share Tech Mono',monospace;font-size:10px;padding:4px 8px;border:1px solid #1e2a35;background:#0f1318;color:#00d4ff;border-radius:3px;cursor:pointer">
     <option value="15">15 min</option>
@@ -97,6 +98,31 @@ function makeLabel(callsign, color) {
 let markers = [];
 let heatLayer = null;
 let heatmapActive = false;
+let coverageLayer = null;
+let coverageActive = false;
+
+async function toggleCoverage() {
+  coverageActive = !coverageActive;
+  const btn = document.getElementById('coverage-btn');
+  if (coverageActive) {
+    btn.textContent = 'COVERAGE ON';
+    btn.classList.add('active');
+    const minutes = document.getElementById('time-range').value;
+    const pts = await (await fetch('/api/coverage?minutes=' + minutes)).json();
+    if (pts.length > 2) {
+      if (coverageLayer) map.removeLayer(coverageLayer);
+      coverageLayer = L.polygon(pts, {
+        color: '#00d4ff', weight: 2, opacity: 0.8,
+        fillColor: '#00d4ff', fillOpacity: 0.08,
+        dashArray: '6,4'
+      }).addTo(map);
+    }
+  } else {
+    btn.textContent = 'COVERAGE OFF';
+    btn.classList.remove('active');
+    if (coverageLayer) { map.removeLayer(coverageLayer); coverageLayer = null; }
+  }
+}
 
 async function loadMap() {
   try {

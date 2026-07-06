@@ -235,6 +235,18 @@ def main():
             db.close()
             if callsign and callsign != CALLSIGN and msg_type == 'RX' and crc_ok == 1:
                 update_station(callsign, ts, distance, rssi, lat, lon, path)
+                # Aggiorna coverage_points per RF diretta (no digi, no meshcom)
+                if lat and lon and path and '*' not in path and path != 'MESHCOM' and distance and distance < 200:
+                    try:
+                        db2 = sqlite3.connect(DB_PATH)
+                        db2.execute(
+                            "INSERT OR REPLACE INTO coverage_points (callsign, lat, lon, timestamp) VALUES (?,?,?,?)",
+                            (callsign, lat, lon, ts)
+                        )
+                        db2.commit()
+                        db2.close()
+                    except Exception as ce:
+                        print(f"Coverage update error: {ce}", flush=True)
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "--init-only":
