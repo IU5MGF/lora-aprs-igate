@@ -112,8 +112,8 @@ async function toggleCoverage() {
     if (pts.length > 2) {
       if (coverageLayer) map.removeLayer(coverageLayer);
       coverageLayer = L.polygon(pts, {
-        color: '#00d4ff', weight: 2, opacity: 0.8,
-        fillColor: '#00d4ff', fillOpacity: 0.08,
+        color: '#00d4ff', weight: 2, opacity: 0.9,
+        fillColor: '#00d4ff', fillOpacity: 0.25,
         dashArray: '6,4'
       }).addTo(map);
     }
