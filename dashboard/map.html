@@ -149,7 +149,18 @@ async function loadMap() {
           "<div style='background:#ff8000;color:#000;width:28px;height:28px;border-radius:50%;border:2px solid white;box-shadow:0 0 8px #ff8000;display:flex;align-items:center;justify-content:center;font-family:monospace;font-size:11px;font-weight:bold'>"
           + cluster.getChildCount() + "</div>", iconSize: [28, 28], iconAnchor: [14, 14]});
       },
-      maxClusterRadius: 40, spiderfyOnMaxZoom: true, showCoverageOnHover: false
+      maxClusterRadius: 40, spiderfyOnMaxZoom: true, showCoverageOnHover: false,
+      disableClusteringAtZoom: 13, zoomToBoundsOnClick: false
+    });
+    if(window.stationCluster) map.removeLayer(window.stationCluster);
+    window.stationCluster = L.markerClusterGroup({
+      iconCreateFunction: function(cluster) {
+        return L.divIcon({className: "", html:
+          "<div style='background:#1e2a35;color:#00d4ff;width:26px;height:26px;border-radius:50%;border:2px solid #00d4ff;box-shadow:0 0 6px #00d4ff;display:flex;align-items:center;justify-content:center;font-family:monospace;font-size:11px;font-weight:bold'>"
+          + cluster.getChildCount() + "</div>", iconSize: [26, 26], iconAnchor: [13, 13]});
+      },
+      maxClusterRadius: 30, spiderfyOnMaxZoom: true, showCoverageOnHover: false,
+      disableClusteringAtZoom: 13
     });
     data.forEach(function(s) {
       const color = s.type === "rf" ? "#00ff9f" : s.type === "meshcom" ? "#bc8cff" : s.type === "own" ? "#ff8000" : "#ffd700";
@@ -191,11 +202,12 @@ async function loadMap() {
       if(s.type === "own") {
         window.ownCluster.addLayer(marker);
       } else {
-        marker.addTo(map);
+        window.stationCluster.addLayer(marker);
         markers.push(marker);
       }
     });
     map.addLayer(window.ownCluster);
+    map.addLayer(window.stationCluster);
   } catch(e) { console.error(e); }
   // tracce stazioni in movimento
   try {
