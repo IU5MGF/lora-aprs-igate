@@ -187,7 +187,7 @@ async function loadBeacon(){
     const unitEl = document.getElementById('stat-beacon-unit');
     const dotEl = document.getElementById('beacon-dot');
     if(timeEl) timeEl.textContent = d.time;
-    if(unitEl) unitEl.textContent = (d.online ? d.minutes_ago+' min fa' : 'OFFLINE') + (d.voltage ? ' | ' + d.voltage + 'V' : '');
+    if(unitEl) unitEl.textContent = d.online ? d.minutes_ago+' min fa' : 'OFFLINE';
     if(dotEl){
       const circle = document.getElementById('beacon-dot-circle');
       const color = d.online ? 'var(--accent3)' : '#4a6070';
