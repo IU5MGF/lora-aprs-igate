@@ -169,9 +169,15 @@ async function loadMap() {
       // Determina se è un tracker mobile (suffisso numerico diverso da -10/-11/-12/-13)
       const ssidMatch = s.callsign.match(/-(\d+)$/);
       const ssid = ssidMatch ? parseInt(ssidMatch[1]) : null;
-      const isMobile = ssid !== null && ![10,11,12,13].includes(ssid);
+      const isBalloon = s.path && (s.path.startsWith('APET') || s.path.startsWith('APRS') && s.comment && s.comment.toUpperCase().includes('BALLOON'));
+      const isMobile = !isBalloon && ssid !== null && ![10,11,12,13].includes(ssid);
       let html;
-      if (isMobile) {
+      if (isBalloon) {
+        html = "<div style='position:relative'>"
+          + "<div style='font-size:16px;line-height:1;filter:drop-shadow(0 0 3px " + color + ")'>🎈</div>"
+          + makeLabel(s.callsign, color)
+          + "</div>";
+      } else if (isMobile) {
         html = "<div style='position:relative'>"
           + "<div style='font-size:16px;line-height:1;filter:drop-shadow(0 0 3px " + color + ")'>🚗</div>"
           + makeLabel(s.callsign, color)
