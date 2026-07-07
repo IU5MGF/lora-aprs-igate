@@ -152,32 +152,28 @@ def check_silence():
         print(f"Silence check error: {e}", flush=True)
 def check_igate():
     try:
-        db = sqlite3.connect(DB_PATH)
-        row = db.execute(
-            "SELECT MAX(timestamp) FROM packets WHERE callsign=?",
-            (CALLSIGN,)
-        ).fetchone()
-        db.close()
-        if row and row[0]:
-            last_ts = datetime.strptime(row[0][:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)
-            minutes_ago = (datetime.now(timezone.utc) - last_ts).total_seconds() / 60
-            if minutes_ago >= IGATE_OFFLINE_MINUTES and not alert_state["igate_offline"]:
-                send_alert(
-                    f"\U0001f4e1 <b>ALERT — iGate offline</b>\n"
-                    f"{CALLSIGN} non trasmette da <b>{int(minutes_ago)} minuti</b>\n"
-                    f"\u23f1 {datetime.now(ROME).strftime('%H:%M')}"
-                )
-                alert_state["igate_offline"] = True
-                save_alert_state()
-                log_event("IGATE_OFFLINE", f"{CALLSIGN} non trasmette da {int(minutes_ago)} minuti")
-            elif minutes_ago < IGATE_OFFLINE_MINUTES and alert_state["igate_offline"]:
-                send_alert(
-                    f"\u2705 <b>RIPRISTINO — iGate online</b>\n"
-                    f"{CALLSIGN} ha ripreso a trasmettere\n"
-                    f"\u23f1 {datetime.now(ROME).strftime('%H:%M')}"
-                )
-                alert_state["igate_offline"] = False
-                save_alert_state()
+        try:
+            r = requests.get(f"http://{IGATE_IP}/", timeout=5)
+            online = r.status_code == 200
+        except:
+            online = False
+        if not online and not alert_state["igate_offline"]:
+            send_alert(
+                f"\U0001f4e1 <b>ALERT — iGate offline</b>\n"
+                f"{CALLSIGN} non raggiungibile ({IGATE_IP})\n"
+                f"\u23f1 {datetime.now(ROME).strftime('%H:%M')}"
+            )
+            alert_state["igate_offline"] = True
+            save_alert_state()
+            log_event("IGATE_OFFLINE", f"{CALLSIGN} non raggiungibile")
+        elif online and alert_state["igate_offline"]:
+            send_alert(
+                f"\u2705 <b>RIPRISTINO — iGate online</b>\n"
+                f"{CALLSIGN} tornato raggiungibile\n"
+                f"\u23f1 {datetime.now(ROME).strftime('%H:%M')}"
+            )
+            alert_state["igate_offline"] = False
+            save_alert_state()
                 log_event("IGATE_ONLINE", f"{CALLSIGN} ha ripreso a trasmettere")
     except Exception as e:
         print(f"iGate check error: {e}", flush=True)

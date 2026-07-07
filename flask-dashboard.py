@@ -345,20 +345,27 @@ def stations_summary():
 
 @app.route("/api/igate_beacon")
 def igate_beacon():
+    # Check online via HTTP ping
+    try:
+        r = req.get(f"http://{IGATE_IP}/", timeout=3)
+        online = r.status_code == 200
+    except:
+        online = False
     db = get_db()
-    row = db.execute("SELECT timestamp, voltage FROM packets WHERE callsign=? AND msg_type='RX' ORDER BY id DESC LIMIT 1", (CALLSIGN,)).fetchone()
+    row = db.execute("SELECT timestamp FROM packets WHERE callsign=? AND msg_type='RX' ORDER BY id DESC LIMIT 1", (CALLSIGN,)).fetchone()
     volt_row = db.execute("SELECT voltage FROM packets WHERE callsign=? AND voltage IS NOT NULL ORDER BY id DESC LIMIT 1", (CALLSIGN,)).fetchone()
     db.close()
+    time_str = "-"
+    minutes_ago = 999
     if row:
         rt = rome_time(row["timestamp"])
+        time_str = rt.strftime("%H:%M") if rt else "-"
         minutes_ago = int((datetime.now(timezone.utc) -
             datetime.strptime(row["timestamp"][:19], "%Y-%m-%dT%H:%M:%S")
             .replace(tzinfo=timezone.utc)).total_seconds() / 60)
-        voltage = volt_row["voltage"] if volt_row else None
-        return jsonify({"time": rt.strftime("%H:%M") if rt else "-",
-            "minutes_ago": minutes_ago, "online": minutes_ago < 15,
-            "voltage": voltage})
-    return jsonify({"time": "-", "minutes_ago": 999, "online": False, "voltage": None})
+    voltage = volt_row["voltage"] if volt_row else None
+    return jsonify({"time": time_str, "minutes_ago": minutes_ago,
+        "online": online, "voltage": voltage})
 @app.route("/api/daily_stats")
 def daily_stats_api():
     db = get_db()
