@@ -172,7 +172,7 @@ async function loadMap() {
       const isBalloon = s.path && (s.path.startsWith('APET') || s.path.startsWith('APRS') && s.comment && s.comment.toUpperCase().includes('BALLOON'));
       const isGW = ssid !== null && ssid >= 10 && ssid <= 13;
       const commentUpper = (s.comment || '').toUpperCase();
-      const isGWbyComment = !isGW && (commentUpper.includes('DIGI') || commentUpper.includes('IGATE') || commentUpper.includes('GATEWAY') || commentUpper.includes('GRF') || /^IR\d/.test(s.callsign) || /^IQ\d/.test(s.callsign));
+      const isGWbyComment = !isGW && (commentUpper.includes('DIGI') || commentUpper.includes('IGATE') || commentUpper.includes('GATEWAY') || commentUpper.includes('GRF') || /^IR\d/.test(s.callsign) || /^IQ\d/.test(s.callsign) || (commentUpper.includes('LORA APRS') && (commentUpper.includes('IGATE') || commentUpper.includes('DIGI') || commentUpper.includes('GATEWAY'))));
       const isMobile = !isBalloon && !isGWbyComment && ssid !== null && ![10,11,12,13].includes(ssid);
       let html;
       if (isBalloon) {
