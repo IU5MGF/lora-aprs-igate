@@ -162,7 +162,7 @@ def map_data():
             own_callsigns.append(MESHCOM_CALLSIGN)
     except: pass
     rows = db.execute("""
-        SELECT callsign, lat, lon, rssi, distance, timestamp, path, voltage
+        SELECT callsign, lat, lon, rssi, distance, timestamp, path, voltage, comment
         FROM packets WHERE crc_ok=1 AND msg_type='RX'
         AND callsign IS NOT NULL AND callsign != ?
         AND lat IS NOT NULL AND lon IS NOT NULL
@@ -177,7 +177,7 @@ def map_data():
     """, (CALLSIGN, minutes, CALLSIGN, minutes)).fetchall()
     # aggiungi propri nodi
     own_rows = db.execute("""
-        SELECT callsign, lat, lon, rssi, distance, timestamp, path, voltage
+        SELECT callsign, lat, lon, rssi, distance, timestamp, path, voltage, comment
         FROM packets WHERE callsign IN ({})
         AND lat IS NOT NULL AND lon IS NOT NULL
         AND replace(timestamp,'T',' ') >= datetime('now', '-180 minutes')
@@ -191,11 +191,12 @@ def map_data():
         "type": 'meshcom' if r['path'] == 'MESHCOM' else ('digi' if r['path'] and '*' in r['path'] else 'rf'),
         "path": r["path"] or "",
         "voltage": r["voltage"],
+        "comment": r["comment"] or "",
         "last_ts": r["timestamp"]} for r in rows]
     for r in own_rows:
         result.append({"callsign": r["callsign"], "lat": r["lat"], "lon": r["lon"],
             "rssi": r["rssi"], "distance": r["distance"],
-            "type": "own", "voltage": r["voltage"], "last_ts": r["timestamp"]})
+            "type": "own", "voltage": r["voltage"], "comment": r["comment"] or "", "last_ts": r["timestamp"]})
     return jsonify(result)
 
 @app.route("/api/coverage")
