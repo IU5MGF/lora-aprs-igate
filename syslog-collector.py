@@ -236,7 +236,7 @@ def main():
             if callsign and callsign != CALLSIGN and msg_type == 'RX' and crc_ok == 1:
                 update_station(callsign, ts, distance, rssi, lat, lon, path)
                 # Aggiorna coverage_points per RF diretta (no digi, no meshcom)
-                if lat and lon and path and '*' not in path and path != 'MESHCOM' and distance and distance < 200:
+                if lat and lon and path and '*' not in path and path != 'MESHCOM' and distance and distance < 400:
                     try:
                         db2 = sqlite3.connect(DB_PATH)
                         db2.execute(
