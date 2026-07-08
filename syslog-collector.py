@@ -157,12 +157,12 @@ def parse_syslog(line):
         comment = parts[11] if len(parts) > 11 else None
         voltage = None
         if comment:
-            volt_match = re.search(r'\|(.{2})', comment)
+            volt_match = re.search(r'\|.{2}(.{2})\|', comment)
             if volt_match:
                 t = volt_match.group(1)
                 try:
                     v_raw = (ord(t[0]) - 33) * 91 + (ord(t[1]) - 33)
-                    voltage = round(v_raw / 113.45, 2)
+                    voltage = round(v_raw * 0.01, 2)
                 except: pass
             comment = re.sub(r'\|[^|]+\|$', '', comment).strip() or None
         return msg_type, callsign, path, crc_ok, rssi, snr, freq_err, distance, lat, lon, comment, voltage
