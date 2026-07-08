@@ -206,6 +206,7 @@ async function loadMap() {
         + "RSSI: " + s.rssi + " dBm<br>"
         + "Distanza: " + s.distance + " km<br>"
         + "Ultimo: " + ora
+        + (s.voltage ? "<br>🔋 " + s.voltage + " V" : "")
       );
       if(s.type === "own") {
         window.ownCluster.addLayer(marker);
