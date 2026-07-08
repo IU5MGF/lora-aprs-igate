@@ -180,7 +180,9 @@ def map_data():
         SELECT callsign, lat, lon, rssi, distance, timestamp, path, voltage
         FROM packets WHERE callsign IN ({})
         AND lat IS NOT NULL AND lon IS NOT NULL
-        AND id IN (SELECT MAX(id) FROM packets WHERE callsign IN ({}) GROUP BY callsign)
+        AND replace(timestamp,'T',' ') >= datetime('now', '-180 minutes')
+        AND id IN (SELECT MAX(id) FROM packets WHERE callsign IN ({})
+        AND replace(timestamp,'T',' ') >= datetime('now', '-180 minutes') GROUP BY callsign)
     """.format(','.join('?'*len(own_callsigns)), ','.join('?'*len(own_callsigns))),
         own_callsigns + own_callsigns).fetchall()
     db.close()
