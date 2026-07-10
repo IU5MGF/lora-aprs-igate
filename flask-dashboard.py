@@ -199,6 +199,32 @@ def map_data():
             "type": "own", "voltage": r["voltage"], "comment": r["comment"] or "", "last_ts": r["timestamp"]})
     return jsonify(result)
 
+@app.route("/api/voltage")
+def voltage_history():
+    days = request.args.get("days", "7")
+    try:
+        days = int(days)
+        if days not in (1, 3, 7, 14, 30):
+            days = 7
+    except:
+        days = 7
+    db = get_db()
+    rows = db.execute("""
+        SELECT timestamp, voltage FROM packets
+        WHERE callsign=? AND voltage IS NOT NULL
+        AND voltage > 3 AND voltage < 5
+        AND replace(timestamp,'T',' ') >= datetime('now', '-' || ? || ' days')
+        ORDER BY timestamp ASC
+    """, (CALLSIGN, days)).fetchall()
+    db.close()
+    result = []
+    for r in rows:
+        rt = rome_time(r["timestamp"])
+        result.append({
+            "time": rt.strftime("%d/%m %H:%M") if rt else r["timestamp"][:16],
+            "voltage": r["voltage"]
+        })
+    return jsonify(result)
 @app.route("/api/coverage")
 def coverage():
     db = get_db()
@@ -467,6 +493,9 @@ def system_update_status():
             log_content = f.read()[-3000:]
     return jsonify({"running": running, "log": log_content})
 
+@app.route("/battery")
+def battery_page():
+    return render_template_string(open(f"{DASHBOARD_DIR}/battery.html").read(), callsign=CALLSIGN)
 @app.route("/crc")
 def crc_page():
     return render_template_string(open(f"{DASHBOARD_DIR}/crc.html").read(), callsign=CALLSIGN)

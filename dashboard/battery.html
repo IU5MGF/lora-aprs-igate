@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tensione Batteria</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d1117;--bg2:#0f1318;--text:#c9d1d9;--text-dim:#8b949e;--accent:#00d4ff;--border:#1e2a35;--mono:'Share Tech Mono',monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh}
+header{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.logo-text{font-size:14px;font-weight:bold;color:var(--accent);letter-spacing:2px}
+.logo-sub{font-size:9px;color:var(--text-dim);letter-spacing:1px}
+.nav-dropdown{position:relative}
+.nav-btn{font-family:var(--mono);font-size:11px;padding:6px 14px;border:1px solid var(--border);background:transparent;color:var(--accent);cursor:pointer;letter-spacing:1px}
+.dropdown-menu{display:none;position:absolute;right:0;top:100%;background:var(--bg2);border:1px solid var(--border);z-index:1000;min-width:180px}
+.nav-dropdown.open .dropdown-menu{display:block}
+.dropdown-item{display:block;padding:8px 16px;font-family:var(--mono);font-size:11px;color:var(--text);text-decoration:none;letter-spacing:1px}
+.dropdown-item:hover{background:var(--border);color:var(--accent)}
+.main{padding:20px}
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:4px}
+.panel-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.panel-title{font-size:11px;letter-spacing:2px;color:var(--text-dim)}
+.stats{display:flex;gap:16px;font-size:11px;color:var(--text-dim)}
+.stats span{color:var(--accent)}
+.chart-container{padding:16px;height:400px}
+select{font-family:var(--mono);font-size:11px;background:var(--bg);color:var(--text);border:1px solid var(--border);padding:4px 8px}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="logo-text">{{ callsign }}</div>
+    <div class="logo-sub">TENSIONE BATTERIA</div>
+  </div>
+  <div style="display:flex;gap:12px;align-items:center">
+    <select id="days" onchange="load()">
+      <option value="1">24 ore</option>
+      <option value="3">3 giorni</option>
+      <option value="7" selected>7 giorni</option>
+      <option value="14">14 giorni</option>
+      <option value="30">30 giorni</option>
+    </select>
+    <div class="nav-dropdown" id="nav">
+      <button class="nav-btn" onclick="document.getElementById('nav').classList.toggle('open')">MENU ▼</button>
+      <div class="dropdown-menu">
+        <a class="dropdown-item" href="/">&#128268; DASHBOARD</a>
+        <a class="dropdown-item" href="/stations">&#128290; STAZIONI</a>
+        <a class="dropdown-item" href="/stats">&#9998; STATISTICHE</a>
+        <a class="dropdown-item" href="/map">&#9783; MAPPA</a>
+        <a class="dropdown-item" href="/server">&#128421; SERVER</a>
+        <a class="dropdown-item" href="/events">&#128221; EVENTI</a>
+        <a class="dropdown-item" href="/crc">&#9888; CRC</a>
+        <a class="dropdown-item" href="/wx">&#127780; WX</a>
+        <a class="dropdown-item" href="/igate">&#128268; iGate WebUI</a></div>
+    </div>
+  </div>
+</header>
+<div class="main">
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">&#128267; STORICO TENSIONE BATTERIA</span>
+      <div class="stats">Min <span id="smin">--</span> &nbsp; Max <span id="smax">--</span> &nbsp; Attuale <span id="scur">--</span> &nbsp; Campioni <span id="scnt">--</span></div>
+    </div>
+    <div class="chart-container"><canvas id="chart"></canvas></div>
+  </div>
+</div>
+<script>
+let ch = null;
+async function load() {
+  const days = document.getElementById('days').value;
+  const data = await (await fetch('/api/voltage?days='+days)).json();
+  document.getElementById('scnt').textContent = data.length;
+  if(!data.length) return;
+  const v = data.map(d=>d.voltage);
+  document.getElementById('smin').textContent = Math.min(...v).toFixed(2)+'V';
+  document.getElementById('smax').textContent = Math.max(...v).toFixed(2)+'V';
+  document.getElementById('scur').textContent = v[v.length-1].toFixed(2)+'V';
+  if(ch) ch.destroy();
+  ch = new Chart(document.getElementById('chart'), {
+    type:'line',
+    data:{labels:data.map(d=>d.time), datasets:[{label:'V_Batt', data:v, borderColor:'#00d4ff', backgroundColor:'rgba(0,212,255,0.05)', borderWidth:1.5, pointRadius:0, fill:true, tension:0.3}]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{color:'#8b949e',font:{family:'Share Tech Mono',size:9},maxTicksLimit:12},grid:{color:'#1e2a35'}},
+        y:{ticks:{color:'#8b949e',font:{family:'Share Tech Mono',size:10},callback:v=>v.toFixed(2)+'V'},grid:{color:'#1e2a35'},min:3.0,max:5.0}
+      }
+    }
+  });
+}
+document.addEventListener('click',e=>{var d=document.getElementById('nav');if(d&&!d.contains(e.target))d.classList.remove('open');});
+load();
+</script>
+</body>
+</html>
