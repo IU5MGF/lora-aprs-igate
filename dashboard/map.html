@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{ callsign }} Mappa</title>
+<title>IU5MGF-10 Mappa</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
@@ -36,7 +36,7 @@ header{background:#0f1318;border-bottom:1px solid #1e2a35;padding:12px 24px;disp
 <body>
 <header>
   <div>
-    <div class="logo-text">{{ callsign }}</div>
+    <div class="logo-text">IU5MGF-10</div>
     <div class="logo-sub">Mappa stazioni &middot; ultimi 60 min</div>
   </div>
   <div style="display:flex;gap:8px"><a href="/" class="back-btn">&#8592; DASHBOARD</a><a href="/crc" class="back-btn">&#9888; CRC</a></div>
@@ -85,7 +85,7 @@ L.marker([43.68047, 11.52987], {
     html: "<div style='background:#00d4ff;width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 0 8px #00d4ff'></div>",
     iconSize: [14, 14], iconAnchor: [7, 7]
   })
-}).addTo(map).bindPopup("<b>{{ callsign }}</b><br>LoRa APRS iGate<br>Reggello (FI)");
+}).addTo(map).bindPopup("<b>IU5MGF-10</b><br>LoRa APRS iGate<br>Reggello (FI)");
 
 function addTwoHours(ts) {
   if (!ts) return "";
@@ -205,6 +205,18 @@ async function loadMap() {
         icon: L.divIcon({ className: "", html: html, iconSize: [size, size], iconAnchor: [size/2, size/2] })
       });
       marker._callsign = s.callsign;
+      // Parsing WX dal comment
+      let wxStr = "";
+      if (s.comment) {
+        const tM = s.comment.match(/t(-?\d{3})/);
+        const hM = s.comment.match(/h(\d{2})/);
+        const bM = s.comment.match(/b(\d{5})/);
+        let wx = [];
+        if (tM) { const c = Math.round((parseInt(tM[1])-32)*5/9); wx.push("🌡 "+c+"°C"); }
+        if (hM) { wx.push("💧 "+parseInt(hM[1])+"%"); }
+        if (bM) { wx.push("⏱ "+(parseInt(bM[1])/10).toFixed(1)+" hPa"); }
+        if (wx.length) wxStr = "<br><small>"+wx.join(" &nbsp; ")+"</small>";
+      }
       marker.bindPopup(
         "<b>" + s.callsign + "</b><br>"
         + "Tipo: " + (s.type === "rf" ? "RF diretta" : s.type === "meshcom" ? "MeshCom" : s.type === "own" ? "Nodo locale" : "Digipeated") + "<br>"
@@ -212,6 +224,7 @@ async function loadMap() {
         + "Distanza: " + s.distance + " km<br>"
         + "Ultimo: " + ora
         + (s.voltage ? "<br>🔋 " + s.voltage + " V" : "")
+        + wxStr
       );
       if(s.type === "own") {
         window.ownCluster.addLayer(marker);
