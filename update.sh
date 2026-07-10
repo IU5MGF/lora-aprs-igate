@@ -69,7 +69,7 @@ echo -e "${CYAN}--- Copia file dashboard ---${NC}"
 if [ -d "$DASHBOARD_DIR" ]; then
     sudo cp "$SCRIPT_DIR/dashboard"/*.html "$DASHBOARD_DIR/"
     sudo cp "$SCRIPT_DIR/dashboard"/*.js "$DASHBOARD_DIR/"
-    sudo chown -R $(logname):$(logname) "$DASHBOARD_DIR"
+    sudo chown -R leonardo:leonardo "$DASHBOARD_DIR"
     echo "  ✓ File HTML/JS copiati in ${DASHBOARD_DIR}"
 else
     echo -e "${YELLOW}  AVVISO: directory dashboard non trovata: ${DASHBOARD_DIR}${NC}"
@@ -98,3 +98,4 @@ echo ""
 echo -e "${GREEN}============================================="
 echo "   Aggiornamento completato!"
 echo "=============================================${NC}"
+echo "=== COMPLETATO ==="
