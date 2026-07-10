@@ -81,7 +81,7 @@ sudo python3 /usr/local/bin/syslog-collector.py --init-only
 echo ""
 
 echo -e "${CYAN}--- Riavvio servizi ---${NC}"
-SERVICES="syslog-collector mqtt-telegram alerts cleanup flask-dashboard"
+SERVICES="syslog-collector mqtt-telegram alerts cleanup"
 for svc in $SERVICES; do
     if systemctl list-unit-files | grep -q "^${svc}.service"; then
         sudo systemctl restart "$svc" 2>/dev/null && echo "  ✓ $svc riavviato" || echo -e "${YELLOW}  AVVISO: $svc non trovato${NC}"
@@ -93,6 +93,8 @@ for svc in meshcom-poller meshcom-udp-listener; do
         sudo systemctl restart "$svc" 2>/dev/null && echo "  ✓ $svc riavviato"
     fi
 done
+# flask-dashboard per ultimo
+sudo systemctl restart flask-dashboard 2>/dev/null && echo "  ✓ flask-dashboard riavviato"
 echo ""
 
 echo -e "${GREEN}============================================="
