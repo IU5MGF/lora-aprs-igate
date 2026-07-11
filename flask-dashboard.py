@@ -493,6 +493,57 @@ def system_update_status():
             log_content = f.read()[-3000:]
     return jsonify({"running": running, "log": log_content})
 
+@app.route("/settings")
+def settings_page():
+    return render_template_string(open(f"{DASHBOARD_DIR}/settings.html").read(), callsign=CALLSIGN)
+
+@app.route("/api/settings", methods=["GET"])
+def settings_get():
+    import importlib.util, types
+    cfg_path = "/usr/local/lib/lora-aprs/config.py"
+    spec = importlib.util.spec_from_file_location("config", cfg_path)
+    cfg = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(cfg)
+    return jsonify({
+        "CALLSIGN": getattr(cfg, "CALLSIGN", ""),
+        "IGATE_IP": getattr(cfg, "IGATE_IP", ""),
+        "IGATE_REBOOT_PW": getattr(cfg, "IGATE_REBOOT_PW", ""),
+        "LATITUDE": getattr(cfg, "LATITUDE", 0),
+        "LONGITUDE": getattr(cfg, "LONGITUDE", 0),
+        "MESHCOM_IP": getattr(cfg, "MESHCOM_IP", ""),
+        "HAS_MESHCOM": getattr(cfg, "HAS_MESHCOM", False),
+    })
+
+@app.route("/api/settings", methods=["POST"])
+def settings_post():
+    data = request.json
+    pw = data.get("password", "")
+    if pw != IGATE_REBOOT_PW:
+        return jsonify({"ok": False, "msg": "Password errata"})
+    cfg_path = "/usr/local/lib/lora-aprs/config.py"
+    with open(cfg_path) as f:
+        content = f.read()
+    fields = ["CALLSIGN", "IGATE_IP", "LATITUDE", "LONGITUDE", "MESHCOM_IP"]
+    for key in fields:
+        if key not in data:
+            continue
+        val = data[key]
+        if isinstance(val, str):
+            content = __import__("re").sub(
+                rf'^{key}\s*=\s*"[^"]*"',
+                f'{key}        = "{val}"',
+                content, flags=__import__("re").MULTILINE
+            )
+        else:
+            content = __import__("re").sub(
+                rf'^{key}\s*=\s*[\d.]+',
+                f'{key}        = {val}',
+                content, flags=__import__("re").MULTILINE
+            )
+    with open(cfg_path, "w") as f:
+        f.write(content)
+    subprocess.Popen(["sudo", "systemctl", "restart", "flask-dashboard", "alerts", "mqtt-telegram", "syslog-collector"])
+    return jsonify({"ok": True, "msg": "Impostazioni salvate — servizi in riavvio"})
 @app.route("/battery")
 def battery_page():
     return render_template_string(open(f"{DASHBOARD_DIR}/battery.html").read(), callsign=CALLSIGN)

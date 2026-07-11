@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ callsign }} — Impostazioni</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d1117;--bg2:#0f1318;--text:#c9d1d9;--text-dim:#8b949e;--accent:#00d4ff;--accent2:#ff4444;--accent3:#3fb950;--border:#1e2a35;--mono:'Share Tech Mono',monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh}
+header{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.logo-text{font-size:14px;font-weight:bold;color:var(--accent);letter-spacing:2px}
+.logo-sub{font-size:9px;color:var(--text-dim);letter-spacing:1px}
+.nav-dropdown{position:relative}
+.nav-btn{font-family:var(--mono);font-size:11px;padding:6px 14px;border:1px solid var(--border);background:transparent;color:var(--accent);cursor:pointer;letter-spacing:1px}
+.dropdown-menu{display:none;position:absolute;right:0;top:100%;background:var(--bg2);border:1px solid var(--border);z-index:1000;min-width:180px}
+.nav-dropdown.open .dropdown-menu{display:block}
+.dropdown-item{display:block;padding:8px 16px;font-family:var(--mono);font-size:11px;color:var(--text);text-decoration:none;letter-spacing:1px}
+.dropdown-item:hover{background:var(--border);color:var(--accent)}
+.main{padding:20px;max-width:800px;margin:0 auto}
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:4px;margin-bottom:16px}
+.panel-header{padding:12px 16px;border-bottom:1px solid var(--border)}
+.panel-title{font-size:11px;letter-spacing:2px;color:var(--text-dim)}
+.field{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.field:last-child{border-bottom:none}
+.field label{font-size:11px;color:var(--text-dim);letter-spacing:1px;width:180px;flex-shrink:0}
+.field input{font-family:var(--mono);font-size:12px;background:var(--bg);color:var(--text);border:1px solid var(--border);padding:6px 10px;outline:none;flex:1}
+.field input:focus{border-color:var(--accent)}
+.actions{padding:16px;display:flex;gap:12px;align-items:center}
+.btn-save{font-family:var(--mono);font-size:11px;padding:8px 20px;background:var(--accent3);color:#000;border:none;cursor:pointer;letter-spacing:1px}
+.btn-save:disabled{opacity:0.5;cursor:not-allowed}
+.msg{font-size:11px}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="logo-text">{{ callsign }}</div>
+    <div class="logo-sub">IMPOSTAZIONI</div>
+  </div>
+  <div class="nav-dropdown" id="nav">
+    <button class="nav-btn" onclick="document.getElementById('nav').classList.toggle('open')">MENU ▼</button>
+    <div class="dropdown-menu">
+      <a class="dropdown-item" href="/">&#128268; DASHBOARD</a>
+      <a class="dropdown-item" href="/stations">&#128290; STAZIONI</a>
+      <a class="dropdown-item" href="/stats">&#9998; STATISTICHE</a>
+      <a class="dropdown-item" href="/map">&#9783; MAPPA</a>
+      <a class="dropdown-item" href="/server">&#128421; SERVER</a>
+      <a class="dropdown-item" href="/events">&#128221; EVENTI</a>
+      <a class="dropdown-item" href="/crc">&#9888; CRC</a>
+      <a class="dropdown-item" href="/wx">&#127780; WX</a>
+      <a class="dropdown-item" href="/battery"><a class="dropdown-item" href="/battery">&#128267; BATTERIA</a>#128267; BATTERIA</a><a class="dropdown-item" href="/settings"><a class="dropdown-item" href="/battery">&#128267; BATTERIA</a>#9881; IMPOSTAZIONI</a>
+      <a class="dropdown-item" href="/settings"><a class="dropdown-item" href="/igate">&#128268; iGate WebUI</a>#9881; IMPOSTAZIONI</a><a class="dropdown-item" href="/igate"><a class="dropdown-item" href="/igate">&#128268; iGate WebUI</a>#128268; iGate WebUI</a>
+    </div>
+  </div>
+</header>
+<div class="main">
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">&#9881; CONFIGURAZIONE IGATE</span></div>
+    <div class="field"><label>Callsign</label><input id="CALLSIGN" type="text"></div>
+    <div class="field"><label>IP iGate</label><input id="IGATE_IP" type="text"></div>
+    <div class="field"><label>Latitudine</label><input id="LATITUDE" type="text"></div>
+    <div class="field"><label>Longitudine</label><input id="LONGITUDE" type="text"></div>
+  </div>
+  <div class="panel" id="meshcom-panel">
+    <div class="panel-header"><span class="panel-title">&#128225; MESHCOM</span></div>
+    <div class="field"><label>IP nodo MeshCom</label><input id="MESHCOM_IP" type="text"></div>
+  </div>
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">&#128274; SALVA</span></div>
+    <div class="actions">
+      <input id="pw" type="password" placeholder="Password..." style="font-family:var(--mono);font-size:11px;background:var(--bg);color:var(--text);border:1px solid var(--border);padding:6px 10px;outline:none;width:160px">
+      <button class="btn-save" id="btn-save" onclick="save()">&#10003; SALVA E RIAVVIA</button>
+      <span class="msg" id="msg"></span>
+    </div>
+  </div>
+</div>
+<script>
+async function load() {
+  const d = await (await fetch('/api/settings')).json();
+  document.getElementById('CALLSIGN').value = d.CALLSIGN || '';
+  document.getElementById('IGATE_IP').value = d.IGATE_IP || '';
+  document.getElementById('LATITUDE').value = d.LATITUDE || '';
+  document.getElementById('LONGITUDE').value = d.LONGITUDE || '';
+  document.getElementById('MESHCOM_IP').value = d.MESHCOM_IP || '';
+  if (!d.HAS_MESHCOM) document.getElementById('meshcom-panel').style.display = 'none';
+}
+async function save() {
+  const pw = document.getElementById('pw').value;
+  if (!pw) { document.getElementById('msg').textContent = 'Inserisci la password'; return; }
+  document.getElementById('btn-save').disabled = true;
+  document.getElementById('msg').textContent = 'Salvataggio...';
+  const body = {
+    password: pw,
+    CALLSIGN: document.getElementById('CALLSIGN').value,
+    IGATE_IP: document.getElementById('IGATE_IP').value,
+    LATITUDE: parseFloat(document.getElementById('LATITUDE').value),
+    LONGITUDE: parseFloat(document.getElementById('LONGITUDE').value),
+    MESHCOM_IP: document.getElementById('MESHCOM_IP').value,
+  };
+  const r = await fetch('/api/settings', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+  const d = await r.json();
+  document.getElementById('msg').textContent = d.msg;
+  document.getElementById('msg').style.color = d.ok ? 'var(--accent3)' : 'var(--accent2)';
+  document.getElementById('btn-save').disabled = false;
+}
+document.addEventListener('click',e=>{var d=document.getElementById('nav');if(d&&!d.contains(e.target))d.classList.remove('open');});
+load();
+</script>
+</body>
+</html>
