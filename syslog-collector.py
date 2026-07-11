@@ -96,8 +96,27 @@ def parse_syslog(line):
         line = line.split(' - - - ', 1)[1]
         parts = [p.strip() for p in line.split(' / ')]
         msg_type = parts[0] if len(parts) > 0 else None
-        if msg_type in ('TX', 'MESSAGE'):
+        if msg_type == 'MESSAGE':
             return None
+        if msg_type == 'TX':
+            raw_packet = parts[1] if len(parts) > 1 else None
+            if not raw_packet or '>' not in raw_packet or ':' not in raw_packet:
+                return None
+            callsign = raw_packet.split('>', 1)[0].strip()
+            rest = raw_packet.split('>', 1)[1]
+            tx_path = rest.split(':', 1)[0].strip()
+            comment = rest.split(':', 1)[1] if ':' in rest else None
+            voltage = None
+            if comment:
+                volt_match = re.search(r'\|.{2}(.{2})\|', comment)
+                if volt_match:
+                    t = volt_match.group(1)
+                    try:
+                        v_raw = (ord(t[0]) - 33) * 91 + (ord(t[1]) - 33)
+                        voltage = round(v_raw * 0.01, 2)
+                    except: pass
+                comment = re.sub(r'\|[^|]+\|$', '', comment).strip() or None
+            return msg_type, callsign, tx_path, 1, None, None, None, None, None, None, comment, voltage
         crc_ok = 0 if msg_type == 'CRC' else 1
         raw_call = parts[2] if len(parts) > 2 else None
         callsign = raw_call if raw_call and re.match(r'^[A-Z0-9]{3,8}(-\d{1,2})?$', raw_call) else None
