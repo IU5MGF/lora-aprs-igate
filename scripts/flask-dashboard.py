@@ -41,7 +41,7 @@ def index():
 
 @app.route("/map")
 def map_page():
-    return render_template_string(open(f"{DASHBOARD_DIR}/map.html").read())
+    return render_template_string(open(f"{DASHBOARD_DIR}/map.html").read(), callsign=CALLSIGN, lat=LATITUDE, lon=LONGITUDE)
 
 @app.route("/stations")
 def stations_page():
