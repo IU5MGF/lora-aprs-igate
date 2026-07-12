@@ -38,6 +38,10 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         timestamp TEXT, type TEXT, message TEXT
     )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS coverage_points (
+        callsign TEXT PRIMARY KEY,
+        lat REAL, lon REAL, timestamp TEXT
+    )''')
     c.execute('''CREATE TABLE IF NOT EXISTS meshcom_weather (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         timestamp TEXT, callsign TEXT,
