@@ -42,7 +42,7 @@ def index():
 
 @app.route("/map")
 def map_page():
-    return render_template_string(open(f"{DASHBOARD_DIR}/map.html").read(), callsign=CALLSIGN)
+    return render_template_string(open(f"{DASHBOARD_DIR}/map.html").read(), callsign=CALLSIGN, lat=LATITUDE, lon=LONGITUDE)
 
 @app.route("/stations")
 def stations_page():
@@ -182,6 +182,7 @@ def map_data():
         AND lat IS NOT NULL AND lon IS NOT NULL
         AND replace(timestamp,'T',' ') >= datetime('now', '-180 minutes')
         AND id IN (SELECT MAX(id) FROM packets WHERE callsign IN ({})
+        AND lat IS NOT NULL AND lon IS NOT NULL
         AND replace(timestamp,'T',' ') >= datetime('now', '-180 minutes') GROUP BY callsign)
     """.format(','.join('?'*len(own_callsigns)), ','.join('?'*len(own_callsigns))),
         own_callsigns + own_callsigns).fetchall()
