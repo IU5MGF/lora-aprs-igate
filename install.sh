@@ -332,6 +332,7 @@ SVCEOF
 
 echo -e "${CYAN}--- Inizializzazione database ---${NC}"
 sudo python3 /usr/local/bin/syslog-collector.py --init-only
+sudo chown -R $(logname):$(logname) "$DATA_DIR" 2>/dev/null || true
 echo -e "${GREEN}Database inizializzato.${NC}"
 
 install_service "syslog-collector" "LoRa APRS Syslog Collector"   "/usr/bin/python3 /usr/local/bin/syslog-collector.py"
