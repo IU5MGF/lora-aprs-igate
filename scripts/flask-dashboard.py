@@ -10,7 +10,8 @@ import pytz
 sys.path.insert(0, "/usr/local/lib/lora-aprs")
 from config import (
     CALLSIGN, DB_PATH, TIMEZONE, DATA_DIR,
-    IGATE_IP, IGATE_REBOOT_PW, HAS_SSD, SSD_MOUNT
+    IGATE_IP, IGATE_REBOOT_PW, HAS_SSD, SSD_MOUNT,
+    LATITUDE, LONGITUDE
 )
 try:
     from config import HAS_MESHCOM, MESHCOM_CALLSIGN
@@ -37,7 +38,7 @@ def rome_time(ts):
 
 @app.route("/")
 def index():
-    return render_template_string(open(f"{DASHBOARD_DIR}/index.html").read())
+    return render_template_string(open(f"{DASHBOARD_DIR}/index.html").read(), callsign=CALLSIGN)
 
 @app.route("/map")
 def map_page():
@@ -45,19 +46,19 @@ def map_page():
 
 @app.route("/stations")
 def stations_page():
-    return render_template_string(open(f"{DASHBOARD_DIR}/stations.html").read())
+    return render_template_string(open(f"{DASHBOARD_DIR}/stations.html").read(), callsign=CALLSIGN)
 
 @app.route("/stats")
 def stats_page():
-    return render_template_string(open(f"{DASHBOARD_DIR}/stats.html").read())
+    return render_template_string(open(f"{DASHBOARD_DIR}/stats.html").read(), callsign=CALLSIGN)
 
 @app.route("/server")
 def server_page():
-    return render_template_string(open(f"{DASHBOARD_DIR}/server.html").read())
+    return render_template_string(open(f"{DASHBOARD_DIR}/server.html").read(), callsign=CALLSIGN)
 
 @app.route("/events")
 def events_page():
-    return render_template_string(open(f"{DASHBOARD_DIR}/events.html").read())
+    return render_template_string(open(f"{DASHBOARD_DIR}/events.html").read(), callsign=CALLSIGN)
 @app.route("/api/stats")
 def stats():
     db = get_db()
@@ -67,28 +68,28 @@ def stats():
     best       = db.execute(f"SELECT callsign, MAX(distance) FROM packets WHERE crc_ok=1 AND msg_type='RX' AND distance IS NOT NULL AND path NOT LIKE '%*%' AND replace(timestamp,'T',' ') >= {since}").fetchone()
     rssi_avg   = db.execute(f"SELECT AVG(rssi) FROM packets WHERE crc_ok=1 AND msg_type='RX' AND rssi IS NOT NULL AND replace(timestamp,'T',' ') >= {since}").fetchone()[0]
     crc_errors = db.execute(f"SELECT COUNT(*) FROM packets WHERE crc_ok=0 AND replace(timestamp,'T',' ') >= {since}").fetchone()[0]
+    meshcom_packets = 0
+    try:
+        meshcom_packets = db.execute(
+            "SELECT COUNT(*) FROM meshcom_rxlog WHERE replace(timestamp,'T',' ') >= datetime('now', '-24 hours')"
+        ).fetchone()[0]
+    except: pass
     db.close()
     return jsonify({"total": total, "unique": unique,
         "best_callsign": best[0] if best else "-",
         "best_distance": best[1] if best else 0,
         "rssi_avg": round(rssi_avg, 1) if rssi_avg else 0,
-        "crc_errors": crc_errors})
+        "crc_errors": crc_errors,
+        "meshcom_packets": meshcom_packets})
 
 @app.route("/api/packets")
 def packets():
     db = get_db()
     rows = db.execute("""
-        SELECT timestamp, callsign, path, rssi, snr, distance, comment FROM
-        (SELECT timestamp, callsign, path, rssi, snr, distance, comment, id FROM packets
-         WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL AND callsign != ?
-         AND path != 'MESHCOM' ORDER BY id DESC LIMIT 40)
-        UNION ALL
-        SELECT timestamp, callsign, path, rssi, snr, distance, comment FROM
-        (SELECT timestamp, callsign, path, rssi, snr, distance, comment, id FROM packets
-         WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL AND callsign != ?
-         AND path = 'MESHCOM' ORDER BY id DESC LIMIT 10)
-    """, (CALLSIGN, CALLSIGN)).fetchall()
-    rows = sorted(rows, key=lambda r: r["timestamp"], reverse=True)[:50]
+        SELECT timestamp, callsign, path, rssi, snr, distance, comment FROM packets
+        WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL
+        ORDER BY id DESC LIMIT 50
+    """).fetchall()
     db.close()
     result = []
     for r in rows:
@@ -146,40 +147,138 @@ def hourly():
     return jsonify(data)
 @app.route("/api/map")
 def map_data():
+    minutes = request.args.get("minutes", "60")
+    try:
+        minutes = int(minutes)
+        if minutes not in (15, 30, 45, 60, 90, 120, 360, 720, 1440):
+            minutes = 60
+    except:
+        minutes = 60
     db = get_db()
+    own_callsigns = [CALLSIGN]
+    try:
+        from config import MESHCOM_CALLSIGN
+        if MESHCOM_CALLSIGN:
+            own_callsigns.append(MESHCOM_CALLSIGN)
+    except: pass
     rows = db.execute("""
-        SELECT callsign, lat, lon, rssi, distance, timestamp, path
+        SELECT callsign, lat, lon, rssi, distance, timestamp, path, voltage, comment
         FROM packets WHERE crc_ok=1 AND msg_type='RX'
         AND callsign IS NOT NULL AND callsign != ?
         AND lat IS NOT NULL AND lon IS NOT NULL
-        AND replace(timestamp,'T',' ') >= datetime('now', '-60 minutes')
+        AND replace(timestamp,'T',' ') >= datetime('now', '-' || ? || ' minutes')
         AND id IN (
             SELECT MAX(id) FROM packets
             WHERE crc_ok=1 AND msg_type='RX'
             AND callsign IS NOT NULL AND callsign != ?
             AND lat IS NOT NULL AND lon IS NOT NULL
-            AND replace(timestamp,'T',' ') >= datetime('now', '-60 minutes')
+            AND replace(timestamp,'T',' ') >= datetime('now', '-' || ? || ' minutes')
             GROUP BY callsign)
-    """, (CALLSIGN, CALLSIGN)).fetchall()
+    """, (CALLSIGN, minutes, CALLSIGN, minutes)).fetchall()
+    # aggiungi propri nodi
+    own_rows = db.execute("""
+        SELECT callsign, lat, lon, rssi, distance, timestamp, path, voltage, comment
+        FROM packets WHERE callsign IN ({})
+        AND lat IS NOT NULL AND lon IS NOT NULL
+        AND replace(timestamp,'T',' ') >= datetime('now', '-180 minutes')
+        AND id IN (SELECT MAX(id) FROM packets WHERE callsign IN ({})
+        AND lat IS NOT NULL AND lon IS NOT NULL
+        AND replace(timestamp,'T',' ') >= datetime('now', '-180 minutes') GROUP BY callsign)
+    """.format(','.join('?'*len(own_callsigns)), ','.join('?'*len(own_callsigns))),
+        own_callsigns + own_callsigns).fetchall()
     db.close()
-    return jsonify([{"callsign": r["callsign"], "lat": r["lat"], "lon": r["lon"],
+    result = [{"callsign": r["callsign"], "lat": r["lat"], "lon": r["lon"],
         "rssi": r["rssi"], "distance": r["distance"],
         "type": 'meshcom' if r['path'] == 'MESHCOM' else ('digi' if r['path'] and '*' in r['path'] else 'rf'),
-        "last_ts": r["timestamp"]} for r in rows])
+        "path": r["path"] or "",
+        "voltage": r["voltage"],
+        "comment": r["comment"] or "",
+        "last_ts": r["timestamp"]} for r in rows]
+    for r in own_rows:
+        result.append({"callsign": r["callsign"], "lat": r["lat"], "lon": r["lon"],
+            "rssi": r["rssi"], "distance": r["distance"],
+            "type": "own", "voltage": r["voltage"], "comment": r["comment"] or "", "last_ts": r["timestamp"]})
+    return jsonify(result)
 
+@app.route("/api/voltage")
+def voltage_history():
+    days = request.args.get("days", "7")
+    try:
+        days = int(days)
+        if days not in (1, 3, 7, 14, 30):
+            days = 7
+    except:
+        days = 7
+    db = get_db()
+    rows = db.execute("""
+        SELECT timestamp, voltage FROM packets
+        WHERE callsign=? AND voltage IS NOT NULL
+        AND voltage > 3 AND voltage < 5
+        AND replace(timestamp,'T',' ') >= datetime('now', '-' || ? || ' days')
+        ORDER BY timestamp ASC
+    """, (CALLSIGN, days)).fetchall()
+    db.close()
+    result = []
+    for r in rows:
+        rt = rome_time(r["timestamp"])
+        result.append({
+            "time": rt.strftime("%d/%m %H:%M") if rt else r["timestamp"][:16],
+            "voltage": r["voltage"]
+        })
+    return jsonify(result)
+@app.route("/api/coverage")
+def coverage():
+    db = get_db()
+    rows = db.execute("SELECT lat, lon FROM coverage_points").fetchall()
+    db.close()
+    points = [[r["lat"], r["lon"]] for r in rows]
+    points.append([LATITUDE, LONGITUDE])
+    if len(points) < 3:
+        return jsonify([])
+    def cross(O, A, B):
+        return (A[0]-O[0])*(B[1]-O[1]) - (A[1]-O[1])*(B[0]-O[0])
+    pts = sorted(set(map(tuple, points)))
+    if len(pts) < 3:
+        return jsonify([list(p) for p in pts])
+    lower = []
+    for p in pts:
+        while len(lower) >= 2 and cross(lower[-2], lower[-1], p) <= 0:
+            lower.pop()
+        lower.append(p)
+    upper = []
+    for p in reversed(pts):
+        while len(upper) >= 2 and cross(upper[-2], upper[-1], p) <= 0:
+            upper.pop()
+        upper.append(p)
+    hull = lower[:-1] + upper[:-1]
+    return jsonify([list(p) for p in hull])
+@app.route("/api/stations/coords")
+def stations_coords():
+    db = get_db()
+    rows = db.execute("SELECT callsign, last_lat, last_lon FROM stations WHERE last_lat IS NOT NULL AND last_lon IS NOT NULL").fetchall()
+    db.close()
+    result = {r["callsign"]: {"lat": r["last_lat"], "lon": r["last_lon"]} for r in rows}
+    result[CALLSIGN] = {"lat": LATITUDE, "lon": LONGITUDE}
+    return jsonify(result)
 @app.route("/api/tracks")
 def tracks():
+    minutes = request.args.get("minutes", "60")
+    try:
+        minutes = int(minutes)
+        if minutes not in (15, 30, 45, 60, 90, 120, 360, 720, 1440):
+            minutes = 60
+    except:
+        minutes = 60
     db = get_db()
     all_trackers = db.execute("""
         SELECT callsign FROM packets
         WHERE crc_ok=1 AND msg_type='RX'
         AND lat IS NOT NULL AND lon IS NOT NULL
-        AND replace(timestamp,'T',' ') >= datetime('now', '-60 minutes')
-        AND date(timestamp, '+2 hours') = date('now', '+2 hours')
+        AND replace(timestamp,'T',' ') >= datetime('now', '-' || ? || ' minutes')
         GROUP BY callsign
         HAVING COUNT(*) > 2
         AND (MAX(lat)-MIN(lat) > 0.001 OR MAX(lon)-MIN(lon) > 0.001)
-    """).fetchall()
+    """, (minutes,)).fetchall()
     result = {}
     for t in all_trackers:
         call = t['callsign']
@@ -187,10 +286,9 @@ def tracks():
             SELECT lat, lon, rssi, timestamp, path FROM packets
             WHERE crc_ok=1 AND msg_type='RX' AND callsign=?
             AND lat IS NOT NULL AND lon IS NOT NULL
-            AND replace(timestamp,'T',' ') >= datetime('now', '-60 minutes')
-            AND date(timestamp, '+2 hours') = date('now', '+2 hours')
+            AND replace(timestamp,'T',' ') >= datetime('now', '-' || ? || ' minutes')
             ORDER BY timestamp ASC
-        """, (call,)).fetchall()
+        """, (call, minutes)).fetchall()
         if not points:
             continue
         last_path = points[-1]['path'] or ''
@@ -228,6 +326,39 @@ def stations_api():
         "best_rssi": r["best_rssi"], "last_rssi": r["last_rssi"],
         "last_path": r["last_path"] or "-"} for r in rows])
 
+@app.route("/api/stations/csv")
+def stations_csv():
+    import csv, io
+    db = get_db()
+    rows = db.execute("""SELECT callsign, first_seen, last_seen, total_packets,
+        max_distance, max_distance_date, best_rssi, last_rssi, last_lat, last_lon, last_path
+        FROM stations ORDER BY total_packets DESC""").fetchall()
+    db.close()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Callsign","Prima vista","Ultima vista","Pacchetti totali",
+        "Distanza max (km)","Data dist max","RSSI migliore","Ultimo RSSI",
+        "Lat","Lon","Ultimo path"])
+    for r in rows:
+        writer.writerow([
+            r["callsign"],
+            r["first_seen"][:10] if r["first_seen"] else "",
+            r["last_seen"][:16].replace("T"," ") if r["last_seen"] else "",
+            r["total_packets"],
+            round(r["max_distance"],1) if r["max_distance"] else "",
+            r["max_distance_date"][:10] if r["max_distance_date"] else "",
+            r["best_rssi"] or "",
+            r["last_rssi"] or "",
+            round(r["last_lat"],5) if r["last_lat"] else "",
+            round(r["last_lon"],5) if r["last_lon"] else "",
+            r["last_path"] or ""
+        ])
+    output.seek(0)
+    from flask import Response
+    from datetime import datetime
+    filename = f"stazioni_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
+    return Response(output.getvalue(), mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"})
 @app.route("/api/stations_summary")
 def stations_summary():
     db = get_db()
@@ -244,17 +375,27 @@ def stations_summary():
 
 @app.route("/api/igate_beacon")
 def igate_beacon():
+    # Check online via HTTP ping
+    try:
+        r = req.get(f"http://{IGATE_IP}/", timeout=3)
+        online = r.status_code == 200
+    except:
+        online = False
     db = get_db()
     row = db.execute("SELECT timestamp FROM packets WHERE callsign=? AND msg_type='RX' ORDER BY id DESC LIMIT 1", (CALLSIGN,)).fetchone()
+    volt_row = db.execute("SELECT voltage FROM packets WHERE callsign=? AND voltage IS NOT NULL ORDER BY id DESC LIMIT 1", (CALLSIGN,)).fetchone()
     db.close()
+    time_str = "-"
+    minutes_ago = 999
     if row:
         rt = rome_time(row["timestamp"])
+        time_str = rt.strftime("%H:%M") if rt else "-"
         minutes_ago = int((datetime.now(timezone.utc) -
             datetime.strptime(row["timestamp"][:19], "%Y-%m-%dT%H:%M:%S")
             .replace(tzinfo=timezone.utc)).total_seconds() / 60)
-        return jsonify({"time": rt.strftime("%H:%M") if rt else "-",
-            "minutes_ago": minutes_ago, "online": minutes_ago < 15})
-    return jsonify({"time": "-", "minutes_ago": 999, "online": False})
+    voltage = volt_row["voltage"] if volt_row else None
+    return jsonify({"time": time_str, "minutes_ago": minutes_ago,
+        "online": online, "voltage": voltage})
 @app.route("/api/daily_stats")
 def daily_stats_api():
     db = get_db()
@@ -308,7 +449,120 @@ def reboot():
     else:
         subprocess.Popen(["sudo", "reboot"])
         return jsonify({"ok": True, "msg": "Server in riavvio..."})
+@app.route("/api/git-update", methods=["POST"])
+def git_update():
+    password = request.json.get("password", "")
+    if password != IGATE_REBOOT_PW:
+        return jsonify({"ok": False, "msg": "Password errata"})
+    if os.path.exists("/tmp/system-update.running"):
+        return jsonify({"ok": False, "msg": "Aggiornamento gia in corso"})
+    open("/tmp/system-update.running", "w").close()
+    import subprocess as _sp
+    script_dir = os.path.expanduser("~/lora-aprs-igate")
+    cmd = (
+        f"cd {script_dir} && "
+        f"bash update.sh >> /tmp/system-update.log 2>&1; "
+        "rm -f /tmp/system-update.running; "
+        "echo '=== COMPLETATO ===' >> /tmp/system-update.log"
+    )
+    open("/tmp/system-update.log", "w").close()
+    subprocess.Popen(cmd, shell=True)
+    return jsonify({"ok": True, "msg": "Aggiornamento da GitHub avviato..."})
+@app.route("/api/system-update", methods=["POST"])
+def system_update():
+    password = request.json.get("password", "")
+    if password != IGATE_REBOOT_PW:
+        return jsonify({"ok": False, "msg": "Password errata"})
+    if os.path.exists("/tmp/system-update.running"):
+        return jsonify({"ok": False, "msg": "Aggiornamento gia in corso"})
+    open("/tmp/system-update.running", "w").close()
+    cmd = (
+        "sudo apt update >> /tmp/system-update.log 2>&1 && "
+        "sudo apt upgrade -y >> /tmp/system-update.log 2>&1; "
+        "rm -f /tmp/system-update.running; "
+        "echo \'=== COMPLETATO ===\' >> /tmp/system-update.log"
+    )
+    open("/tmp/system-update.log", "w").close()
+    subprocess.Popen(cmd, shell=True)
+    return jsonify({"ok": True, "msg": "Aggiornamento avviato in background"})
+@app.route("/api/system-update/status")
+def system_update_status():
+    running = os.path.exists("/tmp/system-update.running")
+    log_content = ""
+    if os.path.exists("/tmp/system-update.log"):
+        with open("/tmp/system-update.log") as f:
+            log_content = f.read()[-3000:]
+    return jsonify({"running": running, "log": log_content})
 
+@app.route("/settings")
+def settings_page():
+    return render_template_string(open(f"{DASHBOARD_DIR}/settings.html").read(), callsign=CALLSIGN)
+
+@app.route("/api/settings", methods=["GET"])
+def settings_get():
+    import importlib.util, types
+    cfg_path = "/usr/local/lib/lora-aprs/config.py"
+    spec = importlib.util.spec_from_file_location("config", cfg_path)
+    cfg = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(cfg)
+    return jsonify({
+        "CALLSIGN": getattr(cfg, "CALLSIGN", ""),
+        "IGATE_IP": getattr(cfg, "IGATE_IP", ""),
+        "IGATE_REBOOT_PW": getattr(cfg, "IGATE_REBOOT_PW", ""),
+        "LATITUDE": getattr(cfg, "LATITUDE", 0),
+        "LONGITUDE": getattr(cfg, "LONGITUDE", 0),
+        "MESHCOM_IP": getattr(cfg, "MESHCOM_IP", ""),
+        "HAS_MESHCOM": getattr(cfg, "HAS_MESHCOM", False),
+    })
+
+@app.route("/api/settings", methods=["POST"])
+def settings_post():
+    data = request.json
+    pw = data.get("password", "")
+    if pw != IGATE_REBOOT_PW:
+        return jsonify({"ok": False, "msg": "Password errata"})
+    cfg_path = "/usr/local/lib/lora-aprs/config.py"
+    with open(cfg_path) as f:
+        content = f.read()
+    fields = ["CALLSIGN", "IGATE_IP", "LATITUDE", "LONGITUDE", "MESHCOM_IP"]
+    for key in fields:
+        if key not in data:
+            continue
+        val = data[key]
+        if isinstance(val, str):
+            content = __import__("re").sub(
+                rf'^{key}\s*=\s*"[^"]*"',
+                f'{key}        = "{val}"',
+                content, flags=__import__("re").MULTILINE
+            )
+        else:
+            content = __import__("re").sub(
+                rf'^{key}\s*=\s*[\d.]+',
+                f'{key}        = {val}',
+                content, flags=__import__("re").MULTILINE
+            )
+    with open(cfg_path, "w") as f:
+        f.write(content)
+    subprocess.Popen(["sudo", "systemctl", "restart", "flask-dashboard", "alerts", "mqtt-telegram", "syslog-collector"])
+    return jsonify({"ok": True, "msg": "Impostazioni salvate — servizi in riavvio"})
+@app.route("/battery")
+def battery_page():
+    return render_template_string(open(f"{DASHBOARD_DIR}/battery.html").read(), callsign=CALLSIGN)
+@app.route("/crc")
+def crc_page():
+    return render_template_string(open(f"{DASHBOARD_DIR}/crc.html").read(), callsign=CALLSIGN)
+@app.route("/api/crc")
+def crc_api():
+    db = get_db()
+    rows = db.execute("""
+        SELECT timestamp, rssi, snr, raw FROM packets
+        WHERE msg_type='CRC'
+        AND replace(timestamp,'T',' ') >= datetime('now', '-24 hours')
+        ORDER BY id DESC LIMIT 200
+    """).fetchall()
+    db.close()
+    return jsonify([{"time": rome_time(r["timestamp"]).strftime("%d/%m %H:%M:%S") if rome_time(r["timestamp"]) else r["timestamp"][:19],
+        "rssi": r["rssi"], "snr": r["snr"], "raw": r["raw"]} for r in rows])
 @app.route("/api/events")
 def events_api():
     db = get_db()
@@ -443,9 +697,30 @@ def meshcom_status():
         "uptime_start": row["uptime_start"],
         "last_seen":   rt.strftime("%H:%M:%S") if rt else "-",
         "minutes_ago": minutes_ago,
-        "online":      minutes_ago < 5,
+        "online":      minutes_ago < 3,
     })
 
+@app.route("/api/meshcom/messages")
+def meshcom_messages():
+    if not HAS_MESHCOM:
+        return jsonify([])
+    db = get_db()
+    rows = db.execute("""
+        SELECT timestamp, callsign, dest, message
+        FROM meshcom_messages
+        ORDER BY id DESC LIMIT 200
+    """).fetchall()
+    db.close()
+    result = []
+    for r in rows:
+        rt = rome_time(r["timestamp"])
+        result.append({
+            "time": rt.strftime("%d/%m %H:%M:%S") if rt else r["timestamp"][:19],
+            "callsign": r["callsign"],
+            "dest": r["dest"],
+            "message": r["message"]
+        })
+    return jsonify(result)
 @app.route("/api/meshcom/mheard")
 def meshcom_mheard():
     db = get_db()
@@ -470,7 +745,7 @@ def meshcom_mheard():
             "alt":      r["alt"],
             "hardware": r["hardware"],
             "msg_type": r["msg_type"],
-            "last_seen": rt.strftime("%H:%M:%S") if rt else "-",
+            "last_seen": rt.strftime("%d/%m %H:%M:%S") if rt else "-",
         })
     return jsonify(result)
 
@@ -486,7 +761,7 @@ def meshcom_rxlog():
     for r in rows:
         rt = rome_time(r["timestamp"])
         result.append({
-            "time":     rt.strftime("%H:%M:%S") if rt else r["timestamp"][11:19],
+            "time":     rt.strftime("%d/%m %H:%M:%S") if rt else r["timestamp"][11:19],
             "src_call": r["src_call"],
             "dst_call": r["dst_call"],
             "path":     r["path"],
