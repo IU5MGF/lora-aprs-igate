@@ -174,7 +174,7 @@ def check_igate():
             )
             alert_state["igate_offline"] = False
             save_alert_state()
-                log_event("IGATE_ONLINE", f"{CALLSIGN} ha ripreso a trasmettere")
+            log_event("IGATE_ONLINE", f"{CALLSIGN} ha ripreso a trasmettere")
     except Exception as e:
         print(f"iGate check error: {e}", flush=True)
 

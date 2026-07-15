@@ -28,7 +28,7 @@ def load_alert_state():
         with open(ALERT_STATE_FILE, "r") as f:
             return json.load(f)
     except:
-        return {"silence": False, "igate_offline": False, "containers": {}}
+        return {"silence": False, "igate_offline": False, "meshcom_offline": False, "containers": {}}
 
 def save_alert_state():
     try:
@@ -39,6 +39,13 @@ def save_alert_state():
         print(f"Save alert state error: {e}", flush=True)
 
 alert_state = load_alert_state()
+# Assicura che alert_state.json sia scrivibile dall'utente corrente
+try:
+    import stat
+    if os.path.exists(ALERT_STATE_FILE):
+        os.chmod(ALERT_STATE_FILE, stat.S_IRUSR|stat.S_IWUSR|stat.S_IRGRP|stat.S_IROTH)
+except Exception:
+    pass
 
 def log_event(event_type, message):
     try:
@@ -145,36 +152,63 @@ def check_silence():
         print(f"Silence check error: {e}", flush=True)
 def check_igate():
     try:
-        db = sqlite3.connect(DB_PATH)
-        row = db.execute(
-            "SELECT MAX(timestamp) FROM packets WHERE callsign=?",
-            (CALLSIGN,)
-        ).fetchone()
-        db.close()
-        if row and row[0]:
-            last_ts = datetime.strptime(row[0][:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)
-            minutes_ago = (datetime.now(timezone.utc) - last_ts).total_seconds() / 60
-            if minutes_ago >= IGATE_OFFLINE_MINUTES and not alert_state["igate_offline"]:
-                send_alert(
-                    f"\U0001f4e1 <b>ALERT — iGate offline</b>\n"
-                    f"{CALLSIGN} non trasmette da <b>{int(minutes_ago)} minuti</b>\n"
-                    f"\u23f1 {datetime.now(ROME).strftime('%H:%M')}"
-                )
-                alert_state["igate_offline"] = True
-                save_alert_state()
-                log_event("IGATE_OFFLINE", f"{CALLSIGN} non trasmette da {int(minutes_ago)} minuti")
-            elif minutes_ago < IGATE_OFFLINE_MINUTES and alert_state["igate_offline"]:
-                send_alert(
-                    f"\u2705 <b>RIPRISTINO — iGate online</b>\n"
-                    f"{CALLSIGN} ha ripreso a trasmettere\n"
-                    f"\u23f1 {datetime.now(ROME).strftime('%H:%M')}"
-                )
-                alert_state["igate_offline"] = False
-                save_alert_state()
-                log_event("IGATE_ONLINE", f"{CALLSIGN} ha ripreso a trasmettere")
+        try:
+            r = requests.get(f"http://{IGATE_IP}/", timeout=5)
+            online = r.status_code == 200
+        except:
+            online = False
+        if not online and not alert_state["igate_offline"]:
+            send_alert(
+                f"\U0001f4e1 <b>ALERT — iGate offline</b>\n"
+                f"{CALLSIGN} non raggiungibile ({IGATE_IP})\n"
+                f"\u23f1 {datetime.now(ROME).strftime('%H:%M')}"
+            )
+            alert_state["igate_offline"] = True
+            save_alert_state()
+            log_event("IGATE_OFFLINE", f"{CALLSIGN} non raggiungibile")
+        elif online and alert_state["igate_offline"]:
+            send_alert(
+                f"\u2705 <b>RIPRISTINO — iGate online</b>\n"
+                f"{CALLSIGN} tornato raggiungibile\n"
+                f"\u23f1 {datetime.now(ROME).strftime('%H:%M')}"
+            )
+            alert_state["igate_offline"] = False
+            save_alert_state()
+            log_event("IGATE_ONLINE", f"{CALLSIGN} ha ripreso a trasmettere")
     except Exception as e:
         print(f"iGate check error: {e}", flush=True)
 
+def check_meshcom():
+    try:
+        import requests as _req
+        from config import MESHCOM_IP, MESHCOM_CALLSIGN, HAS_MESHCOM
+        if not HAS_MESHCOM:
+            return
+        try:
+            r = _req.get(f"http://{MESHCOM_IP}/", timeout=5)
+            online = r.status_code == 200
+        except:
+            online = False
+        if not online and not alert_state.get("meshcom_offline", False):
+            send_alert(
+                f"\U0001f4e1 <b>ALERT — MeshCom offline</b>\n"
+                f"{MESHCOM_CALLSIGN} non raggiungibile\n"
+                f"\u23f1 {datetime.now(ROME).strftime('%H:%M')}"
+            )
+            alert_state["meshcom_offline"] = True
+            save_alert_state()
+            log_event("MESHCOM_OFFLINE", f"{MESHCOM_CALLSIGN} non raggiungibile")
+        elif online and alert_state.get("meshcom_offline", False):
+            send_alert(
+                f"\u2705 <b>RIPRISTINO — MeshCom online</b>\n"
+                f"{MESHCOM_CALLSIGN} tornato raggiungibile\n"
+                f"\u23f1 {datetime.now(ROME).strftime('%H:%M')}"
+            )
+            alert_state["meshcom_offline"] = False
+            save_alert_state()
+            log_event("MESHCOM_ONLINE", f"{MESHCOM_CALLSIGN} tornato raggiungibile")
+    except Exception as e:
+        print(f"MeshCom check error: {e}", flush=True)
 print("Avvio alerts.py", flush=True)
 log_event("AVVIO", "Sistema alert avviato")
 send_alert(
@@ -186,4 +220,5 @@ while True:
     check_containers()
     #check_silence()  # disabilitato
     check_igate()
+    check_meshcom()
     time.sleep(CHECK_INTERVAL)
