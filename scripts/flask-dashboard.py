@@ -409,6 +409,15 @@ def daily_stats_api():
         "best_callsign": r["best_callsign"] or "-", "rssi_avg": r["rssi_avg"],
         "crc_errors": r["crc_errors"], "peak_hour": r["peak_hour"] or "-"} for r in rows])
 
+@app.route("/api/live_temp")
+def live_temp():
+    try:
+        with open("/sys/class/thermal/thermal_zone0/temp") as f:
+            millideg = int(f.read().strip())
+        return jsonify({"temp": round(millideg / 1000, 1)})
+    except Exception as e:
+        return jsonify({"temp": None, "error": str(e)})
+
 @app.route("/api/system_stats")
 def system_stats_api():
     db = get_db()

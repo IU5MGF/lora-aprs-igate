@@ -209,6 +209,33 @@ def check_meshcom():
             log_event("MESHCOM_ONLINE", f"{MESHCOM_CALLSIGN} tornato raggiungibile")
     except Exception as e:
         print(f"MeshCom check error: {e}", flush=True)
+def check_temperature():
+    try:
+        r = requests.get("http://localhost:5000/api/live_temp", timeout=5)
+        temp = r.json().get("temp")
+        if temp is None:
+            return
+        if temp >= 80 and not alert_state.get("temp_high", False):
+            send_alert(
+                f"\U0001f525 <b>ALERT \u2014 Temperatura CPU critica</b>\n"
+                f"{CALLSIGN}: {temp}\u00b0C\n"
+                f"\u23f1 {datetime.now(ROME).strftime('%H:%M')}"
+            )
+            alert_state["temp_high"] = True
+            save_alert_state()
+            log_event("TEMP_HIGH", f"Temperatura critica: {temp}\u00b0C")
+        elif temp < 75 and alert_state.get("temp_high", False):
+            send_alert(
+                f"\u2705 <b>RIPRISTINO \u2014 Temperatura normale</b>\n"
+                f"{CALLSIGN}: {temp}\u00b0C\n"
+                f"\u23f1 {datetime.now(ROME).strftime('%H:%M')}"
+            )
+            alert_state["temp_high"] = False
+            save_alert_state()
+            log_event("TEMP_NORMAL", f"Temperatura tornata normale: {temp}\u00b0C")
+    except Exception as e:
+        print(f"Temperature check error: {e}", flush=True)
+
 print("Avvio alerts.py", flush=True)
 log_event("AVVIO", "Sistema alert avviato")
 send_alert(
@@ -221,4 +248,5 @@ while True:
     #check_silence()  # disabilitato
     check_igate()
     check_meshcom()
+    check_temperature()
     time.sleep(CHECK_INTERVAL)

@@ -34,7 +34,7 @@ async function doReboot(target){
 <div class="section-title">Sistema</div>
 <div class="info-grid">
 
-<div class="info-item"><div class="info-label">Uptime</div><div class="info-value" style="font-size:18px" id="s-uptime">-</div><div class="info-unit">dall ultimo riavvio</div></div>
+<div class="info-item"><div class="info-label">Uptime</div><div class="info-value" style="font-size:18px" id="s-uptime">-</div><div class="info-unit">dall ultimo riavvio</div></div><div class="info-item"><div class="info-label">Temperatura CPU</div><div class="info-value" style="font-size:18px" id="s-temp">-</div><div class="info-unit">&deg;C</div></div>
 </div>
 </div>
 
@@ -82,6 +82,9 @@ async function loadServer(){
       const m = Math.floor((data.live_uptime%3600)/60);
       document.getElementById('s-uptime').textContent = h+'h '+m+'m';
     }
+    if(last.cpu_temp !== undefined && last.cpu_temp !== null){
+      document.getElementById('s-temp').textContent = last.cpu_temp.toFixed(1)+'°C';
+    }
 
     // storage
     const diskPerc = last.disk_perc || 0;
@@ -95,6 +98,16 @@ async function loadServer(){
 
 loadServer();
 setInterval(loadServer, 60000);
+async function loadLiveTemp(){
+  try{
+    const d = await (await fetch('/api/live_temp')).json();
+    if(d.temp !== null && d.temp !== undefined){
+      document.getElementById('s-temp').textContent = d.temp.toFixed(1)+'\u00b0C';
+    }
+  }catch(e){console.error(e);}
+}
+loadLiveTemp();
+setInterval(loadLiveTemp, 10000);
 
 async function doReboot(target){
   const pwd = document.getElementById('reboot-pwd').value;
