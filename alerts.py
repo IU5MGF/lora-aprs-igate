@@ -105,6 +105,32 @@ def check_containers():
             print(f"RIPRISTINO: {name} up", flush=True)
             alert_state["containers"][name] = False
 
+        # Riavvio automatico one-shot per syslog-collector: se resta giu
+        # per 3 cicli consecutivi (~3 min), prova un riavvio del server
+        # una sola volta. Se persiste anche dopo, serve controllo fisico.
+        if name == "syslog-collector":
+            if not running:
+                count = alert_state.get("syslog_down_count", 0) + 1
+                alert_state["syslog_down_count"] = count
+                if count >= 3 and not alert_state.get("auto_reboot_done", False):
+                    try:
+                        alert_state["auto_reboot_done"] = True
+                        save_alert_state()
+                        send_alert(
+                            f"\U0001f501 <b>Riavvio automatico avviato</b>\n"
+                            f"syslog-collector giu da {count} minuti\n"
+                            f"Se il problema persiste dopo il riavvio, serve controllo fisico\n"
+                            f"\u23f1 {datetime.now(ROME).strftime('%H:%M')}"
+                        )
+                        print(f"AUTO-REBOOT: syslog-collector down da {count} cicli", flush=True)
+                        subprocess.Popen(["sudo", "reboot"])
+                    except Exception as e:
+                        print(f"Auto-reboot error: {e}", flush=True)
+            else:
+                alert_state["syslog_down_count"] = 0
+                alert_state["auto_reboot_done"] = False
+        save_alert_state()
+
 def check_silence():
     try:
         db = sqlite3.connect(DB_PATH)
