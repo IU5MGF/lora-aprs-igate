@@ -283,10 +283,14 @@ def tracks():
     for t in all_trackers:
         call = t['callsign']
         points = db.execute("""
-            SELECT lat, lon, rssi, timestamp, path FROM packets
-            WHERE crc_ok=1 AND msg_type='RX' AND callsign=?
-            AND lat IS NOT NULL AND lon IS NOT NULL
-            AND replace(timestamp,'T',' ') >= datetime('now', '-' || ? || ' minutes')
+            SELECT lat, lon, rssi, timestamp, path FROM (
+                SELECT lat, lon, rssi, timestamp, path,
+                    ROW_NUMBER() OVER (PARTITION BY lat, lon ORDER BY timestamp ASC) as rn
+                FROM packets
+                WHERE crc_ok=1 AND msg_type='RX' AND callsign=?
+                AND lat IS NOT NULL AND lon IS NOT NULL
+                AND replace(timestamp,'T',' ') >= datetime('now', '-' || ? || ' minutes')
+            ) WHERE rn = 1
             ORDER BY timestamp ASC
         """, (call, minutes)).fetchall()
         if not points:
