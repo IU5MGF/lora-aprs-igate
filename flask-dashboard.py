@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, render_template_string, request
 import sqlite3
 import subprocess
+import math
 import requests as req
 from datetime import datetime, timezone
 import os
@@ -260,6 +261,14 @@ def stations_coords():
     result = {r["callsign"]: {"lat": r["last_lat"], "lon": r["last_lon"]} for r in rows}
     result[CALLSIGN] = {"lat": LATITUDE, "lon": LONGITUDE}
     return jsonify(result)
+def haversine_km(lat1, lon1, lat2, lon2):
+    R = 6371.0
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlambda = math.radians(lon2 - lon1)
+    a = math.sin(dphi/2)**2 + math.cos(phi1)*math.cos(phi2)*math.sin(dlambda/2)**2
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+
 @app.route("/api/tracks")
 def tracks():
     minutes = request.args.get("minutes", "60")
@@ -295,12 +304,40 @@ def tracks():
         """, (call, minutes)).fetchall()
         if not points:
             continue
-        last_path = points[-1]['path'] or ''
+
+        # Filtro velocita impossibile: scarta punti che implicherebbero
+        # una velocita > 500 km/h rispetto all'ultimo punto accettato
+        # (stesso principio usato da aprs.fi per filtrare GPS/out-of-order)
+        accepted = []
+        for p in points:
+            if p['lat'] == 0 and p['lon'] == 0:
+                continue
+            if not accepted:
+                accepted.append(p)
+                continue
+            last = accepted[-1]
+            try:
+                t1 = datetime.fromisoformat(last['timestamp'])
+                t2 = datetime.fromisoformat(p['timestamp'])
+                dt_hours = (t2 - t1).total_seconds() / 3600.0
+                if dt_hours <= 0:
+                    continue
+                dist_km = haversine_km(last['lat'], last['lon'], p['lat'], p['lon'])
+                speed_kmh = dist_km / dt_hours
+                if speed_kmh > 500:
+                    continue
+            except Exception:
+                pass
+            accepted.append(p)
+
+        if not accepted:
+            continue
+        last_path = accepted[-1]['path'] or ''
         result[call] = {
             'type': 'digi' if '*' in last_path else 'rf',
             'points': [{'lat': p['lat'], 'lon': p['lon'], 'rssi': p['rssi'],
                 'time': rome_time(p['timestamp']).strftime('%H:%M') if rome_time(p['timestamp']) else '-'}
-                for p in points]}
+                for p in accepted]}
     db.close()
     return jsonify(result)
 
