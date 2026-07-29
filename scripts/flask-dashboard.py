@@ -450,6 +450,20 @@ def daily_stats_api():
         "best_callsign": r["best_callsign"] or "-", "rssi_avg": r["rssi_avg"],
         "crc_errors": r["crc_errors"], "peak_hour": r["peak_hour"] or "-"} for r in rows])
 
+@app.route("/api/services_status")
+def services_status():
+    services = ["mosquitto", "syslog-collector", "mqtt-telegram", "flask-dashboard",
+                "alerts", "cleanup", "meshcom-poller", "meshcom-udp-listener"]
+    result = {}
+    for name in services:
+        try:
+            r = subprocess.run(["systemctl", "is-active", name],
+                                capture_output=True, text=True)
+            result[name] = r.stdout.strip() == "active"
+        except Exception:
+            result[name] = False
+    return jsonify(result)
+
 @app.route("/api/live_temp")
 def live_temp():
     try:
