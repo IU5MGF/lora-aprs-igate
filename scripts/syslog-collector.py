@@ -204,7 +204,7 @@ def update_station(callsign, timestamp, distance, rssi, lat, lon, path):
             max_dist = existing[1]
             best_rssi = existing[2]
             max_dist_date = None
-            if distance and path and '*' not in path:
+            if distance and path and '*' not in path and not (lat == 0 and lon == 0):
                 if max_dist is None or distance > max_dist:
                     max_dist = distance
                     max_dist_date = timestamp
@@ -217,7 +217,7 @@ def update_station(callsign, timestamp, distance, rssi, lat, lon, path):
                 (timestamp, total, max_dist, best_rssi, rssi, lat, lon, path, max_dist_date, callsign)
             )
         else:
-            max_dist = distance if path and '*' not in path else None
+            max_dist = distance if path and '*' not in path and not (lat == 0 and lon == 0) else None
             db.execute(
                 """INSERT INTO stations (callsign, first_seen, last_seen, total_packets,
                 max_distance, max_distance_date, best_rssi, last_rssi, last_lat, last_lon, last_path)
