@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, render_template_string, request
 import sqlite3
+import threading
 import subprocess
 import math
 import requests as req
@@ -607,8 +608,11 @@ def settings_post():
             )
     with open(cfg_path, "w") as f:
         f.write(content)
-    subprocess.Popen(["sudo", "systemctl", "restart", "flask-dashboard", "alerts", "mqtt-telegram", "syslog-collector"])
-    return jsonify({"ok": True, "msg": "Impostazioni salvate — servizi in riavvio"})
+    subprocess.Popen(["sudo", "systemctl", "restart", "alerts", "mqtt-telegram", "syslog-collector"])
+    def _restart_self():
+        subprocess.Popen(["sudo", "systemctl", "restart", "flask-dashboard"])
+    threading.Timer(2.0, _restart_self).start()
+    return jsonify({"ok": True, "msg": "Impostazioni salvate — servizi in riavvio tra 2s"})
 @app.route("/battery")
 def battery_page():
     return render_template_string(open(f"{DASHBOARD_DIR}/battery.html").read(), callsign=CALLSIGN)
