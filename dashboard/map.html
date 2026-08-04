@@ -113,7 +113,7 @@ async function toggleCoverage() {
     btn.textContent = 'COVERAGE ON';
     btn.classList.add('active');
     const minutes = document.getElementById('time-range').value;
-    const pts = await (await fetch('/api/coverage?minutes=' + minutes)).json();
+    const pts = await (await fetch('/api/coverage?minutes=' + minutes + '&_=' + Date.now())).json();
     if (pts.length > 2) {
       if (coverageLayer) map.removeLayer(coverageLayer);
       coverageLayer = L.polygon(pts, {

@@ -233,7 +233,20 @@ def coverage():
     db = get_db()
     rows = db.execute("SELECT lat, lon FROM coverage_points").fetchall()
     db.close()
-    points = [[r["lat"], r["lon"]] for r in rows]
+    raw_points = [[r["lat"], r["lon"]] for r in rows]
+    # Filtro anti-outlier: escludi il 5% dei punti piu lontani (stesso
+    # principio usato da aprs.to) prima di calcolare il convex hull,
+    # cosi un singolo DX eccezionale non fa esplodere il poligono
+    if len(raw_points) >= 20:
+        distances = sorted(
+            haversine_km(LATITUDE, LONGITUDE, p[0], p[1]) for p in raw_points
+        )
+        idx95 = int(len(distances) * 0.95)
+        threshold = distances[idx95]
+        points = [p for p in raw_points
+                  if haversine_km(LATITUDE, LONGITUDE, p[0], p[1]) <= threshold]
+    else:
+        points = raw_points
     points.append([LATITUDE, LONGITUDE])
     if len(points) < 3:
         return jsonify([])
