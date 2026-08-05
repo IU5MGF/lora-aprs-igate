@@ -179,7 +179,7 @@ def check_silence():
 def check_igate():
     try:
         try:
-            r = requests.get(f"http://{IGATE_IP}/", timeout=5)
+            r = requests.get(f"http://{IGATE_IP}/", timeout=15)
             online = r.status_code == 200
         except:
             online = False
