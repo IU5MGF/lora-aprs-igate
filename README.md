@@ -17,7 +17,7 @@ Software completo per un iGate LoRa APRS basato su Raspberry Pi, con notifiche T
 - Mappa con filtro D-STAR/EL per nascondere ripetitori voce
 - Icone marker dinamiche: 🚗 tracker mobili, GW gateway/digipeater (-10/-13), pallino per stazioni base
 - Tracce tracker con colori dinamici per callsign (ogni tracker ha colore diverso)
-- Poligono coverage RF storico (convex hull) — si espande automaticamente con nuove ricezioni
+- Poligono coverage RF storico (convex hull) — si espande automaticamente con nuove ricezioni, con filtro anti-outlier (95° percentile) per escludere ricezioni eccezionali che distorcerebbero la forma
 - Menu a tendina sulla mappa per finestra temporale (15 min → 24 ore)
 - Aggiornamento mappa ogni 10 secondi
 - Database SQLite con retention configurabile
@@ -29,6 +29,9 @@ Software completo per un iGate LoRa APRS basato su Raspberry Pi, con notifiche T
 - Aggiornamento sistema (apt update/upgrade) dalla dashboard
 - Integrazione MeshCom completa (opzionale)
 - Display OLED SSD1306 opzionale
+- Pagina /settings per modificare configurazione (callsign, coordinate, MeshCom) dalla dashboard, con riavvio automatico dei servizi
+- LED di stato in tempo reale per ogni servizio su /server
+- Riavvio automatico one-shot se un servizio critico resta inattivo
 - Installazione guidata interattiva
 - Aggiornamento guidato con update.sh
 
@@ -177,7 +180,8 @@ Accessibile su `http://IP_RPi:5000`
 | /map | Mappa OSM con posizioni, heatmap RF, tracker con colori dinamici, coverage RF, icone marker dinamiche, filtro D-STAR/EL, finestra temporale configurabile, aggiornamento 10s |
 | /stations | Registro storico stazioni ricevute con esportazione CSV |
 | /stats | Grafici statistiche giornaliere RF/DIGI |
-| /server | Stato RPi, reboot protetto da password, aggiornamento sistema |
+| /server | Stato RPi, reboot protetto da password, aggiornamento sistema, LED stato servizi |
+| /settings | Modifica configurazione (callsign, coordinate, MeshCom) con riavvio automatico servizi |
 | /events | Log eventi sistema |
 | /crc | Log pacchetti con errore CRC (debug) |
 | /wx | Meteo da sensore BME680 su nodo MeshCom (solo se HAS_MESHCOM=True) |
