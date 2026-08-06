@@ -248,14 +248,18 @@ def main():
                 continue
             msg_type, callsign, path, crc_ok, rssi, snr, freq_err, distance, lat, lon, comment, voltage = result
             ts = datetime.utcnow().isoformat()
-            db = sqlite3.connect(DB_PATH)
-            db.execute(
-                "INSERT INTO packets VALUES (NULL,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                (ts, msg_type, callsign, path, crc_ok, rssi, snr, freq_err,
-                 distance, lat, lon, comment, line, voltage)
-            )
-            db.commit()
-            db.close()
+            try:
+                db = sqlite3.connect(DB_PATH, timeout=10)
+                db.execute(
+                    "INSERT INTO packets VALUES (NULL,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    (ts, msg_type, callsign, path, crc_ok, rssi, snr, freq_err,
+                     distance, lat, lon, comment, line, voltage)
+                )
+                db.commit()
+                db.close()
+            except Exception as e:
+                print(f"Packet insert error: {e}", flush=True)
+                continue
             if callsign and callsign != CALLSIGN and msg_type == 'RX' and crc_ok == 1:
                 update_station(callsign, ts, distance, rssi, lat, lon, path)
                 # Aggiorna coverage_points per RF diretta (no digi, no meshcom)
