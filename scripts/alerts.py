@@ -178,24 +178,30 @@ def check_silence():
         print(f"Silence check error: {e}", flush=True)
 def check_igate():
     try:
-        try:
-            r = requests.get(f"http://{IGATE_IP}/", timeout=15)
-            online = r.status_code == 200
-        except:
-            online = False
+        db = sqlite3.connect(DB_PATH)
+        row = db.execute(
+            "SELECT MAX(timestamp) FROM packets WHERE callsign=? AND msg_type='TX'",
+            (CALLSIGN,)
+        ).fetchone()
+        db.close()
+        online = False
+        if row and row[0]:
+            last_dt = datetime.fromisoformat(row[0])
+            minutes_since = (datetime.utcnow() - last_dt).total_seconds() / 60
+            online = minutes_since <= 25
         if not online and not alert_state["igate_offline"]:
             send_alert(
                 f"\U0001f4e1 <b>ALERT — iGate offline</b>\n"
-                f"{CALLSIGN} non raggiungibile ({IGATE_IP})\n"
+                f"{CALLSIGN} — nessun beacon negli ultimi 25 minuti\n"
                 f"\u23f1 {datetime.now(ROME).strftime('%H:%M')}"
             )
             alert_state["igate_offline"] = True
             save_alert_state()
-            log_event("IGATE_OFFLINE", f"{CALLSIGN} non raggiungibile")
+            log_event("IGATE_OFFLINE", f"{CALLSIGN} nessun beacon recente")
         elif online and alert_state["igate_offline"]:
             send_alert(
                 f"\u2705 <b>RIPRISTINO — iGate online</b>\n"
-                f"{CALLSIGN} tornato raggiungibile\n"
+                f"{CALLSIGN} beacon ricevuto di nuovo\n"
                 f"\u23f1 {datetime.now(ROME).strftime('%H:%M')}"
             )
             alert_state["igate_offline"] = False
