@@ -556,7 +556,7 @@ def system_update():
     open("/tmp/system-update.running", "w").close()
     cmd = (
         "sudo apt update >> /tmp/system-update.log 2>&1 && "
-        "sudo apt upgrade -y >> /tmp/system-update.log 2>&1; "
+        "sudo apt full-upgrade -y >> /tmp/system-update.log 2>&1; "
         "rm -f /tmp/system-update.running; "
         "echo \'=== COMPLETATO ===\' >> /tmp/system-update.log"
     )

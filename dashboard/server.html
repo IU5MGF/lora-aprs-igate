@@ -6,7 +6,7 @@
 [data-theme="light"] body::before{background:none}
 [data-theme="light"] .stat-card{box-shadow:0 1px 4px rgba(0,0,0,0.1)}
 [data-theme="light"] .panel{box-shadow:0 1px 4px rgba(0,0,0,0.1)}
-[data-theme="light"] .dropdown-menu{background:#e1ecf7;border-color:#d0dce8}[data-theme="light"] .dropdown-item{color:#0066aa;border-bottom-color:#d0dce8}[data-theme="light"] .dropdown-item:hover{background:rgba(0,102,170,0.05)}[data-theme="light"] .nav-btn{color:#0066aa;border-color:#d0dce8}</style></head>
+[data-theme="light"] .dropdown-menu{background:#e1ecf7;border-color:#d0dce8}[data-theme="light"] .dropdown-item{color:#0066aa;border-bottom-color:#d0dce8}[data-theme="light"] .dropdown-item:hover{background:rgba(0,102,170,0.05)}[data-theme="light"] .nav-btn{color:#0066aa;border-color:#d0dce8}</style><script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script></head>
 <body>
 <header><div class="logo"><div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg></div><div><div class="logo-text">{{ callsign }}</div><div class="logo-sub">Server RPi5</div></div></div><div class="header-right"><div class="nav-dropdown" id="navDropdown"><button class="nav-btn" onclick="document.getElementById('navDropdown').classList.toggle('open')">MENU &#9660;</button><div class="dropdown-menu"><a class="dropdown-item" href="/">&#128268; DASHBOARD</a><a class="dropdown-item" href="/stations">&#128290; STAZIONI</a><a class="dropdown-item" href="/stats">&#9998; STATISTICHE</a><a class="dropdown-item" href="/map">&#9783; MAPPA</a><a class="dropdown-item" href="/server">&#128421; SERVER</a><a class="dropdown-item" href="/events">&#128221; EVENTI</a><a class="dropdown-item" href="/crc">&#9888; CRC</a><a class="dropdown-item" href="/wx">&#127780; WX</a><a class="dropdown-item" href="/meshcom">&#128225; MeshCom</a>
 <a class="dropdown-item" href="/battery">🔋 BATTERIA</a><a class="dropdown-item" href="/settings">&#9881; IMPOSTAZIONI</a><a class="dropdown-item" href="/igate">&#128268; iGate WebUI</a></a></div></div><script>document.addEventListener('click',function(e){var d=document.getElementById('navDropdown');if(d&&!d.contains(e.target))d.classList.remove('open');});
@@ -38,6 +38,10 @@ async function doReboot(target){
 </div>
 </div>
 
+<div class="section">
+<div class="section-title">Temperatura CPU — Storico</div>
+<canvas id="temp-chart" style="max-height:200px"></canvas>
+</div>
 <div class="section">
 <div class="section-title">Storage</div>
 <div class="gauge-row"><div class="gauge-header"><span class="gauge-name">SSD</span><span class="gauge-val" id="g-disk-val">-</span></div><div class="gauge-bar-bg"><div class="gauge-bar" id="g-disk" style="width:0%;background:var(--accent3)"></div></div></div>
@@ -111,6 +115,44 @@ async function loadServer(){
 
 loadServer();
 setInterval(loadServer, 60000);
+
+let tempChart = null;
+async function loadTempChart(){
+  try{
+    const res = await (await fetch('/api/system_stats')).json();
+    const rows = res.data;
+    const labels = rows.map(r => r.time);
+    const temps = rows.map(r => r.cpu_temp);
+    if(tempChart){
+      tempChart.data.labels = labels;
+      tempChart.data.datasets[0].data = temps;
+      tempChart.update();
+      return;
+    }
+    const ctx = document.getElementById('temp-chart').getContext('2d');
+    tempChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Temp CPU (°C)', data: temps,
+          borderColor: '#00d4ff', backgroundColor: 'rgba(0,212,255,0.1)',
+          borderWidth: 1.5, pointRadius: 0, fill: true, tension: 0.3
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#4a6070', font: { family: 'Share Tech Mono', size: 8 }, maxTicksLimit: 10 }, grid: { color: '#1e2a35' } },
+          y: { ticks: { color: '#00d4ff', font: { size: 9 } }, grid: { color: '#1e2a35' } }
+        }
+      }
+    });
+  }catch(e){console.error(e);}
+}
+loadTempChart();
+setInterval(loadTempChart, 300000);
 
 async function loadServicesStatus(){
   try{
