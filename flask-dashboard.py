@@ -373,7 +373,6 @@ def heatmap():
     rows = db.execute("""SELECT lat, lon, rssi FROM packets
         WHERE crc_ok=1 AND msg_type='RX'
         AND lat IS NOT NULL AND lon IS NOT NULL AND path NOT LIKE '%*%'
-        AND date(timestamp, '+2 hours') = date('now', '+2 hours')
     """).fetchall()
     db.close()
     return jsonify([[r['lat'], r['lon'], max(0, min(1, (r['rssi']+150)/50))] for r in rows])
