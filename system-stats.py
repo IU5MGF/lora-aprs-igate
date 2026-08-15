@@ -29,14 +29,15 @@ def collect():
     except:
         ram_total = ram_used = None
     disk_total = disk_used = None
-    if HAS_SSD:
-        try:
-            st = os.statvfs(SSD_MOUNT)
-            disk_total = st.f_blocks * st.f_frsize // (1024**3)
-            disk_free  = st.f_bavail * st.f_frsize // (1024**3)
-            disk_used  = disk_total - disk_free
-        except:
-            pass
+    disk_label = "SSD" if HAS_SSD else "SD Card"
+    try:
+        disk_path = SSD_MOUNT if HAS_SSD else "/"
+        st = os.statvfs(disk_path)
+        disk_total = st.f_blocks * st.f_frsize // (1024**3)
+        disk_free  = st.f_bavail * st.f_frsize // (1024**3)
+        disk_used  = disk_total - disk_free
+    except:
+        pass
     try:
         uptime = int(float(open("/proc/uptime").read().split()[0]))
     except:
@@ -76,10 +77,10 @@ def collect():
             pass
     db.execute("""INSERT INTO system_stats
         (timestamp, cpu_temp, ram_used, ram_total, disk_used, disk_total,
-         uptime_seconds, cpu_perc, cpu_freq, net_rx, net_tx)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+         uptime_seconds, cpu_perc, cpu_freq, net_rx, net_tx, disk_label)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
         (ts, cpu_temp, ram_used, ram_total, disk_used, disk_total,
-         uptime, cpu_perc, freq, net_rx, net_tx))
+         uptime, cpu_perc, freq, net_rx, net_tx, disk_label))
     db.commit()
     db.close()
     print(f"{ts} — temp:{cpu_temp}C cpu:{cpu_perc}% ram:{ram_used}/{ram_total}MB disk:{disk_used}/{disk_total}GB", flush=True)

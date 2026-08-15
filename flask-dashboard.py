@@ -24,6 +24,18 @@ except ImportError:
 DASHBOARD_DIR = os.path.join(os.path.dirname(DATA_DIR), "flask-dashboard")
 
 app = Flask(__name__, static_folder=DASHBOARD_DIR, static_url_path="/static")
+
+@app.route('/api/disk_space')
+def disk_space():
+    import shutil
+    total, used, free = shutil.disk_usage("/")
+    return jsonify({
+        'total_gb': round(total / (1024**3), 1),
+        'used_gb': round(used / (1024**3), 1),
+        'free_gb': round(free / (1024**3), 1),
+        'percent_used': round((used / total) * 100, 1)
+    })
+
 ROME = pytz.timezone(TIMEZONE)
 
 def get_db():
@@ -491,7 +503,7 @@ def live_temp():
 def system_stats_api():
     db = get_db()
     rows = db.execute("""SELECT timestamp, cpu_temp, ram_used, ram_total,
-        disk_used, disk_total, uptime_seconds, cpu_perc, cpu_freq, net_rx, net_tx
+        disk_used, disk_total, uptime_seconds, cpu_perc, cpu_freq, net_rx, net_tx, disk_label
         FROM system_stats ORDER BY id DESC LIMIT 168""").fetchall()
     db.close()
     result = []
@@ -503,6 +515,7 @@ def system_stats_api():
             "ram_perc": round(r["ram_used"]/r["ram_total"]*100,1) if r["ram_total"] else 0,
             "disk_used": r["disk_used"], "disk_total": r["disk_total"],
             "disk_perc": round(r["disk_used"]/r["disk_total"]*100,1) if r["disk_total"] else 0,
+            "disk_label": r["disk_label"] or "SD Card",
             "uptime": r["uptime_seconds"], "net_rx": r["net_rx"], "net_tx": r["net_tx"]})
     try:
         live_uptime = int(float(open("/proc/uptime").read().split()[0]))

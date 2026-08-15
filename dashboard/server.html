@@ -35,6 +35,8 @@ async function doReboot(target){
 <div class="info-grid">
 
 <div class="info-item"><div class="info-label">Uptime</div><div class="info-value" style="font-size:18px" id="s-uptime">-</div><div class="info-unit">dall ultimo riavvio</div></div><div class="info-item"><div class="info-label">Temperatura CPU</div><div class="info-value" style="font-size:18px" id="s-temp">-</div><div class="info-unit">&deg;C</div></div>
+
+
 </div>
 </div>
 
@@ -44,7 +46,7 @@ async function doReboot(target){
 </div>
 <div class="section">
 <div class="section-title">Storage</div>
-<div class="gauge-row"><div class="gauge-header"><span class="gauge-name">SSD</span><span class="gauge-val" id="g-disk-val">-</span></div><div class="gauge-bar-bg"><div class="gauge-bar" id="g-disk" style="width:0%;background:var(--accent3)"></div></div></div>
+<div class="gauge-row"><div class="gauge-header"><span class="gauge-name" id="g-disk-label">SD Card</span><span class="gauge-val" id="g-disk-val">-</span></div><div class="gauge-bar-bg"><div class="gauge-bar" id="g-disk" style="width:0%;background:var(--accent3)"></div></div></div>
 </div>
 
 <div class="section">
@@ -109,6 +111,7 @@ async function loadServer(){
     document.getElementById('g-disk').style.width = diskPerc+'%';
     document.getElementById('g-disk').style.background = diskColor;
     document.getElementById('g-disk-val').textContent = diskPerc+'% — '+last.disk_used+'GB / '+last.disk_total+'GB';
+    if(last.disk_label){ document.getElementById('g-disk-label').textContent = last.disk_label; }
 
   }catch(e){console.error(e);}
 }
