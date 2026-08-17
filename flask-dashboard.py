@@ -169,37 +169,20 @@ def map_data():
     except:
         minutes = 60
     db = get_db()
-    own_callsigns = [CALLSIGN]
-    try:
-        from config import MESHCOM_CALLSIGN
-        if MESHCOM_CALLSIGN:
-            own_callsigns.append(MESHCOM_CALLSIGN)
-    except: pass
     rows = db.execute("""
         SELECT callsign, lat, lon, rssi, distance, timestamp, path, voltage, comment
         FROM packets WHERE crc_ok=1 AND msg_type='RX'
-        AND callsign IS NOT NULL AND callsign != ?
+        AND callsign IS NOT NULL
         AND lat IS NOT NULL AND lon IS NOT NULL
         AND replace(timestamp,'T',' ') >= datetime('now', '-' || ? || ' minutes')
         AND id IN (
             SELECT MAX(id) FROM packets
             WHERE crc_ok=1 AND msg_type='RX'
-            AND callsign IS NOT NULL AND callsign != ?
+            AND callsign IS NOT NULL
             AND lat IS NOT NULL AND lon IS NOT NULL
             AND replace(timestamp,'T',' ') >= datetime('now', '-' || ? || ' minutes')
             GROUP BY callsign)
-    """, (CALLSIGN, minutes, CALLSIGN, minutes)).fetchall()
-    # aggiungi propri nodi
-    own_rows = db.execute("""
-        SELECT callsign, lat, lon, rssi, distance, timestamp, path, voltage, comment
-        FROM packets WHERE callsign IN ({})
-        AND lat IS NOT NULL AND lon IS NOT NULL
-        AND replace(timestamp,'T',' ') >= datetime('now', '-180 minutes')
-        AND id IN (SELECT MAX(id) FROM packets WHERE callsign IN ({})
-        AND lat IS NOT NULL AND lon IS NOT NULL
-        AND replace(timestamp,'T',' ') >= datetime('now', '-180 minutes') GROUP BY callsign)
-    """.format(','.join('?'*len(own_callsigns)), ','.join('?'*len(own_callsigns))),
-        own_callsigns + own_callsigns).fetchall()
+    """, (minutes, minutes)).fetchall()
     db.close()
     result = [{"callsign": r["callsign"], "lat": r["lat"], "lon": r["lon"],
         "rssi": r["rssi"], "distance": r["distance"],
@@ -208,10 +191,6 @@ def map_data():
         "voltage": r["voltage"],
         "comment": r["comment"] or "",
         "last_ts": r["timestamp"]} for r in rows]
-    for r in own_rows:
-        result.append({"callsign": r["callsign"], "lat": r["lat"], "lon": r["lon"],
-            "rssi": r["rssi"], "distance": r["distance"],
-            "type": "own", "voltage": r["voltage"], "comment": r["comment"] or "", "last_ts": r["timestamp"]})
     return jsonify(result)
 
 @app.route("/api/voltage")
@@ -615,20 +594,21 @@ def settings_post():
     with open(cfg_path) as f:
         content = f.read()
     fields = ["CALLSIGN", "IGATE_IP", "LATITUDE", "LONGITUDE", "MESHCOM_IP"]
+    numeric_fields = {"LATITUDE", "LONGITUDE"}
     for key in fields:
         if key not in data:
             continue
         val = data[key]
-        if isinstance(val, str):
+        if key in numeric_fields:
             content = __import__("re").sub(
-                rf'^{key}\s*=\s*"[^"]*"',
-                f'{key}        = "{val}"',
+                rf'^{key}\s*=\s*[\d.\-]+',
+                f'{key}        = {val}',
                 content, flags=__import__("re").MULTILINE
             )
         else:
             content = __import__("re").sub(
-                rf'^{key}\s*=\s*[\d.]+',
-                f'{key}        = {val}',
+                rf'^{key}\s*=\s*"[^"]*"',
+                f'{key}        = "{val}"',
                 content, flags=__import__("re").MULTILINE
             )
     with open(cfg_path, "w") as f:

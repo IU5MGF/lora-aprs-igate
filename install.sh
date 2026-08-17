@@ -106,6 +106,8 @@ fi
 
 echo ""
 echo -e "${CYAN}--- Posizione iGate ---${NC}"
+echo -e "${YELLOW}Inserisci le coordinate del punto in cui e' installato il tuo iGate/Digipeater.${NC}"
+echo -e "${YELLOW}Servono a calcolare correttamente la copertura RF (poligono, distanze, heatmap) da quel punto.${NC}"
 LATITUDE=$(ask "Latitudine decimale (es. 43.68047)" "${DEF_LAT:-43.68047}")
 LONGITUDE=$(ask "Longitudine decimale (es. 11.52987)" "${DEF_LON:-11.52987}")
 
