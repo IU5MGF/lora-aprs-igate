@@ -31,6 +31,11 @@ header{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 
 .btn-save{font-family:var(--mono);font-size:11px;padding:8px 20px;background:var(--accent3);color:#000;border:none;cursor:pointer;letter-spacing:1px}
 .btn-save:disabled{opacity:0.5;cursor:not-allowed}
 .msg{font-size:11px}
+[data-theme="light"]{--bg:#f0f4f8;--bg2:#ffffff;--bg3:#e8eef4;--border:#d0dce8;--text:#1a2530;--text-dim:#5a6c7d}
+[data-theme="light"] .dropdown-menu{background:#e1ecf7;border-color:#d0dce8}
+[data-theme="light"] .dropdown-item{color:#0066aa;border-bottom-color:#d0dce8}
+[data-theme="light"] .dropdown-item:hover{background:rgba(0,102,170,0.05)}
+[data-theme="light"] .nav-btn{color:#0066aa;border-color:#d0dce8}
 </style>
 </head>
 <body>
@@ -39,21 +44,11 @@ header{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 
     <div class="logo-text">{{ callsign }}</div>
     <div class="logo-sub">IMPOSTAZIONI</div>
   </div>
+  <button id="theme-btn" onclick="toggleTheme()" style="font-family:var(--mono);font-size:11px;padding:6px 14px;background:transparent;color:var(--accent);border:1px solid var(--border);cursor:pointer;letter-spacing:1px;margin-right:8px">&#9728; TEMA</button>
   <div class="nav-dropdown" id="nav">
     <button class="nav-btn" onclick="document.getElementById('nav').classList.toggle('open')">MENU ▼</button>
     <div class="dropdown-menu">
-      <a class="dropdown-item" href="/">&#128268; DASHBOARD</a>
-      <a class="dropdown-item" href="/stations">&#128290; STAZIONI</a>
-      <a class="dropdown-item" href="/stats">&#9998; STATISTICHE</a>
-      <a class="dropdown-item" href="/map">&#9783; MAPPA</a>
-      <a class="dropdown-item" href="/server">&#128421; SERVER</a>
-      <a class="dropdown-item" href="/events">&#128221; EVENTI</a>
-      <a class="dropdown-item" href="/crc">&#9888; CRC</a>
-      <a class="dropdown-item" href="/wx">&#127780; WX</a>
-      <a class="dropdown-item" href="/battery">&#128267; BATTERIA</a>
-      <a class="dropdown-item" href="/settings">&#9881; IMPOSTAZIONI</a>
-      <a class="dropdown-item" href="/igate">&#128268; iGate WebUI</a>
-    </div>
+      <a class="dropdown-item" href="/settings">&#9881; IMPOSTAZIONI</a><a class="dropdown-item" href="/">&#128268; DASHBOARD</a><a class="dropdown-item" href="/stations">&#128290; STAZIONI</a><a class="dropdown-item" href="/stats">&#9998; STATISTICHE</a><a class="dropdown-item" href="/crc">&#9888; CRC</a><a class="dropdown-item" href="/events">&#128221; EVENTI</a><a class="dropdown-item" href="/server">&#128421; SERVER</a><a class="dropdown-item" href="/battery">&#128267; BATTERIA</a><a class="dropdown-item" href="/map">&#9783; MAPPA</a><a class="dropdown-item" href="/wx">&#127780; WX</a><a class="dropdown-item" href="/meshcom">&#128246; MESHCOM</a><a class="dropdown-item" href="/igate">&#128268; iGate WebUI</a></div>
   </div>
 </header>
 <div class="main">
@@ -108,6 +103,28 @@ async function save() {
 }
 document.addEventListener('click',e=>{var d=document.getElementById('nav');if(d&&!d.contains(e.target))d.classList.remove('open');});
 load();
+</script>
+<script>
+function applyTheme(t){
+  document.documentElement.setAttribute('data-theme', t);
+  const btn = document.getElementById('theme-btn');
+  if(btn) btn.innerHTML = t === 'dark' ? '&#9728; TEMA' : '&#9789; TEMA';
+}
+function toggleTheme(){
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  const next = current === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('theme', next);
+  applyTheme(next);
+  localStorage.setItem('theme_change', Date.now());
+}
+const saved = localStorage.getItem('theme') || 'dark';
+applyTheme(saved);
+window.addEventListener('storage', function(e){
+  if(e.key === 'theme_change'){
+    const t = localStorage.getItem('theme') || 'dark';
+    applyTheme(t);
+  }
+});
 </script>
 </body>
 </html>

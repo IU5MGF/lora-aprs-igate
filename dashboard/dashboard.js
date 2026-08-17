@@ -42,7 +42,7 @@ async function loadPackets(){
       const dist_str = p.distance ? p.distance+' km' : '--';
       let pathBadge;
       if(p.path === 'MESHCOM')
-        pathBadge = '<span style="background:#2a1a4a;color:#bc8cff;padding:1px 6px;border-radius:3px;font-size:10px">MESHCOM</span>';
+        pathBadge = '<span class="path-badge path-meshcom">MESHCOM</span>';
       else if(p.path && p.path.includes('*')){
         const parts = p.path.split(',');
         const digiIdx = parts.findIndex(x => x.includes('*'));
@@ -50,10 +50,10 @@ async function loadPackets(){
         if(digiCall && /^(WIDE|TRACE|RELAY)\d*-?\d*$/.test(digiCall) && digiIdx > 0)
           digiCall = parts[digiIdx-1].replace('*','');
         const digiLabel = digiCall ? 'DIGI via '+digiCall : 'DIGI';
-        pathBadge = '<span style="background:#1a3a1a;color:#00ff9f;padding:1px 6px;border-radius:3px;font-size:10px" title="'+p.path+'">'+digiLabel+'</span>';
+        pathBadge = '<span class="path-badge path-digi" title="'+p.path+'">'+digiLabel+'</span>';
       }
       else
-        pathBadge = '<span style="background:#1a2a3a;color:#00d4ff;padding:1px 6px;border-radius:3px;font-size:10px">RF</span>';
+        pathBadge = '<span class="path-badge path-rf">RF</span>';
       const callDisplay = p.path === 'MESHCOM'
         ? '<span style="color:#bc8cff;font-weight:bold">'+p.callsign+'</span>'
         : '<span class="callsign">'+p.callsign+'</span>';
