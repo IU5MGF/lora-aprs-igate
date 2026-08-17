@@ -78,13 +78,7 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: "&copy; OpenStreetMap", maxZoom: 18
 }).addTo(map);
 
-L.marker([{{ lat }}, {{ lon }}], {
-  icon: L.divIcon({
-    className: "",
-    html: "<div style='background:#00d4ff;width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 0 8px #00d4ff'></div>",
-    iconSize: [14, 14], iconAnchor: [7, 7]
-  })
-}).addTo(map).bindPopup("<b>{{ callsign }}</b><br>LoRa APRS iGate");
+
 
 function addTwoHours(ts) {
   if (!ts) return "";
