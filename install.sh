@@ -214,6 +214,12 @@ MESHCOM_CALLSIGN = "${MESHCOM_CALLSIGN}"
 CONFEOF
 
 echo -e "${GREEN}config.py scritto in ${CONFIG_PATH}${NC}"
+# Permessi scrittura per la pagina /settings + regola sudo per auto-restart dei servizi
+sudo chown "$(whoami):$(whoami)" "$CONFIG_PATH"
+sudo chmod 664 "$CONFIG_PATH"
+echo "$(whoami) ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart flask-dashboard, /usr/bin/systemctl restart alerts, /usr/bin/systemctl restart mqtt-telegram, /usr/bin/systemctl restart syslog-collector" | sudo tee /etc/sudoers.d/lora-aprs-restart > /dev/null
+sudo chmod 440 /etc/sudoers.d/lora-aprs-restart
+sudo visudo -c > /dev/null && echo -e "${GREEN}Permessi /settings configurati (scrittura config.py + auto-restart servizi)${NC}" || echo -e "${YELLOW}Attenzione: verifica manuale sudoers necessaria${NC}"
 
 # Genera .env
 ENV_PATH="/usr/local/lib/lora-aprs/.env"
