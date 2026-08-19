@@ -186,7 +186,7 @@ def map_data():
     db.close()
     result = [{"callsign": r["callsign"], "lat": r["lat"], "lon": r["lon"],
         "rssi": r["rssi"], "distance": r["distance"],
-        "type": 'meshcom' if r['path'] == 'MESHCOM' else ('digi' if r['path'] and '*' in r['path'] else 'rf'),
+        "type": 'meshcom' if r['path'] == 'MESHCOM' else ('meshcom_digi' if r['path'] and r['path'].startswith('MESHCOM') else ('digi' if r['path'] and '*' in r['path'] else 'rf')),
         "path": r["path"] or "",
         "voltage": r["voltage"],
         "comment": r["comment"] or "",

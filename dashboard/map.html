@@ -49,7 +49,8 @@ header{background:#0f1318;border-bottom:1px solid #1e2a35;padding:12px 24px;disp
   <span>Max distanza: <span id="stat-maxdist" style="color:#00d4ff">-</span></span>
   <span style="color:#00ff9f">&#9679; RF diretta</span>
   <span style="color:#ffd700">&#9679; GW/Digi</span>
-  <span style="color:#bc8cff">&#9679; MeshCom</span>
+  <span style="color:#bc8cff">&#9679; Mesh RF</span>
+  <span style="color:#ff8c00">&#9679; Mesh Digi</span>
   <button class="toggle-btn active" id="rep-btn" onclick="toggleFilter('rep')">D-STAR/EL ON</button>
   <div style="display:flex;gap:4px;align-items:center;margin-left:8px">
     <input id="search-call" type="text" placeholder="Cerca callsign..." style="font-family:var(--mono);font-size:10px;background:var(--bg);color:#00d4ff;border:1px solid #00d4ff;padding:3px 8px;outline:none;width:130px" onkeydown="if(event.key==='Enter')searchCallsign()">
@@ -129,7 +130,7 @@ async function loadMap() {
     const rf = data.filter(s => s.type === "rf");
     const digi = data.filter(s => s.type === "digi");
 
-    const mesh = data.filter(s => s.type === "meshcom");
+    const mesh = data.filter(s => s.type === "meshcom" || s.type === "meshcom_digi");
     document.getElementById("stat-rf").textContent = rf.length;
     document.getElementById("stat-digi").textContent = digi.length;
     document.getElementById("stat-mesh").textContent = mesh.length;
@@ -153,7 +154,7 @@ async function loadMap() {
     if(window.stationCluster) map.removeLayer(window.stationCluster);
     window.stationCluster = L.layerGroup();
     data.forEach(function(s) {
-      const color = s.type === "rf" ? "#00ff9f" : s.type === "meshcom" ? "#bc8cff" : s.type === "own" ? "#ff8000" : "#ffd700";
+      const color = s.type === "rf" ? "#00ff9f" : s.type === "meshcom" ? "#bc8cff" : s.type === "meshcom_digi" ? "#ff8c00" : s.type === "own" ? "#ff8000" : "#ffd700";
       const size = s.type === "own" ? 14 : 10;
       const ora = addTwoHours(s.last_ts);
       // Determina se è un tracker mobile (suffisso numerico diverso da -10/-11/-12/-13)
@@ -205,7 +206,7 @@ async function loadMap() {
       }
       marker.bindPopup(
         "<b>" + s.callsign + "</b><br>"
-        + "Tipo: " + (s.type === "rf" ? "RF diretta" : s.type === "meshcom" ? "MeshCom" : s.type === "own" ? "Nodo locale" : "Digipeated") + "<br>"
+        + "Tipo: " + (s.type === "rf" ? "RF diretta" : s.type === "meshcom" ? "MeshCom diretto" : s.type === "meshcom_digi" ? "MeshCom via relay" : s.type === "own" ? "Nodo locale" : "Digipeated") + "<br>"
         + "RSSI: " + s.rssi + " dBm<br>"
         + "Distanza: " + s.distance + " km<br>"
         + "Ultimo: " + ora

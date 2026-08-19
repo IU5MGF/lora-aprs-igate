@@ -30,7 +30,12 @@ def send_notify(msg):
 
 def handle_pos(d, db):
     src = d.get("src", "")
-    callsign = src.split(",")[0]
+    parts = [p.strip() for p in src.split(",") if p.strip()]
+    callsign = parts[0] if parts else ""
+    if len(parts) > 1:
+        mesh_path = "MESHCOM*" + parts[1]
+    else:
+        mesh_path = "MESHCOM"
     lat = d.get("lat")
     lon = d.get("long")
     lat_dir = d.get("lat_dir", "N")
@@ -61,7 +66,7 @@ def handle_pos(d, db):
         db.execute("""INSERT OR IGNORE INTO packets
             (timestamp, callsign, path, lat, lon, comment, msg_type, crc_ok, rssi, snr)
             VALUES (?,?,?,?,?,?,?,1,?,?)""",
-            (ts, callsign, "MESHCOM", lat_f, lon_f, comment, "RX", rssi, snr))
+            (ts, callsign, mesh_path, lat_f, lon_f, comment, "RX", rssi, snr))
         db.commit()
         log.info(f"POS: {callsign} lat={lat_f} lon={lon_f} batt={batt} alt={alt}")
     except Exception as e:
