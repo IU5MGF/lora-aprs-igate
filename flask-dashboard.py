@@ -745,7 +745,7 @@ def igate_proxy(subpath=""):
 def meshcom_page():
     if not HAS_MESHCOM:
         return "MeshCom non configurato", 404
-    return render_template_string(open(f"{DASHBOARD_DIR}/meshcom.html").read())
+    return render_template_string(open(f"{DASHBOARD_DIR}/meshcom.html").read(), callsign=CALLSIGN)
 
 @app.route("/api/meshcom/status")
 def meshcom_status():
