@@ -41,8 +41,10 @@ async function loadPackets(){
       const snr_str = p.snr ? p.snr+' dB' : '--';
       const dist_str = p.distance ? p.distance+' km' : '--';
       let pathBadge;
-      if(p.path === 'MESHCOM')
-        pathBadge = '<span class="path-badge path-meshcom">MESHCOM</span>';
+      if(p.path && p.path.startsWith('MESHCOM:')){
+        const meshLabel = p.path.split(':')[1].split('*')[0];
+        pathBadge = '<span class="path-badge path-meshcom" title="'+p.path+'">'+meshLabel+'</span>';
+      }
       else if(p.path && p.path.includes('*')){
         const parts = p.path.split(',');
         const digiIdx = parts.findIndex(x => x.includes('*'));
@@ -54,7 +56,7 @@ async function loadPackets(){
       }
       else
         pathBadge = '<span class="path-badge path-rf">RF</span>';
-      const callDisplay = p.path === 'MESHCOM'
+      const callDisplay = (p.path && p.path.startsWith('MESHCOM:'))
         ? '<span style="color:#bc8cff;font-weight:bold">'+p.callsign+'</span>'
         : '<span class="callsign">'+p.callsign+'</span>';
       tr.innerHTML = '<td style="color:var(--text-dim)">'+p.time+'</td>'

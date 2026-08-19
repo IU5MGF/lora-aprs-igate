@@ -33,9 +33,9 @@ def handle_pos(d, db):
     parts = [p.strip() for p in src.split(",") if p.strip()]
     callsign = parts[0] if parts else ""
     if len(parts) > 1:
-        mesh_path = "MESHCOM*" + parts[1]
+        mesh_path = "MESHCOM:POS*" + parts[1]
     else:
-        mesh_path = "MESHCOM"
+        mesh_path = "MESHCOM:POS"
     lat = d.get("lat")
     lon = d.get("long")
     lat_dir = d.get("lat_dir", "N")
@@ -96,6 +96,16 @@ def handle_msg(d, db):
             notify_message(callsign, dst, text)
     except Exception as e:
         log.warning(f"handle_msg db error: {e}")
+    parts = [p.strip() for p in src.split(",") if p.strip()]
+    txt_path = "MESHCOM:TXT" + (f"*{parts[1]}" if len(parts) > 1 else "")
+    try:
+        db.execute("""INSERT OR IGNORE INTO packets
+            (timestamp, callsign, path, lat, lon, comment, msg_type, crc_ok, rssi, snr)
+            VALUES (?,?,?,?,?,?,?,1,?,?)""",
+            (ts, callsign, txt_path, None, None, text[:200], "RX", d.get("rssi"), d.get("snr")))
+        db.commit()
+    except Exception as e:
+        log.warning(f"handle_msg packets insert error: {e}")
 
 def notify_message(callsign, dst, text):
     time_str = datetime.now(ROME).strftime("%H:%M")
@@ -158,6 +168,37 @@ def handle_tele(d, db):
         except Exception as e:
             log.warning(f"handle_tele db error: {e}")
 
+def handle_generic(d, db, mtype):
+    src = d.get("src", "")
+    parts = [p.strip() for p in src.split(",") if p.strip()]
+    if not parts:
+        return
+    callsign = parts[0]
+    hop = parts[1] if len(parts) > 1 else None
+    path = f"MESHCOM:{mtype.upper()}" + (f"*{hop}" if hop else "")
+    lat_f = lon_f = None
+    lat = d.get("lat")
+    lon = d.get("long")
+    try:
+        if lat is not None and lon is not None:
+            lat_f = float(lat)
+            lon_f = float(lon)
+            if d.get("lat_dir", "N") == "S": lat_f = -lat_f
+            if d.get("long_dir", "E") == "W": lon_f = -lon_f
+            if lat_f == 0.0 and lon_f == 0.0:
+                lat_f = lon_f = None
+    except (TypeError, ValueError):
+        lat_f = lon_f = None
+    ts = now_utc()
+    try:
+        db.execute("""INSERT OR IGNORE INTO packets
+            (timestamp, callsign, path, lat, lon, comment, msg_type, crc_ok, rssi, snr)
+            VALUES (?,?,?,?,?,?,?,1,?,?)""",
+            (ts, callsign, path, lat_f, lon_f, None, "RX", d.get("rssi"), d.get("snr")))
+        db.commit()
+        log.info(f"{mtype.upper()}: {callsign} path={path}")
+    except Exception as e:
+        log.warning(f"handle_generic({mtype}) db error: {e}")
 def main():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(("0.0.0.0", UDP_PORT))
@@ -175,6 +216,8 @@ def main():
                 handle_msg(d, db)
             elif mtype == "tele":
                 handle_tele(d, db)
+            else:
+                handle_generic(d, db, mtype)
         except json.JSONDecodeError:
             log.warning(f"JSON non valido: {text[:100]}")
         except Exception as e:
