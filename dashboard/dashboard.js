@@ -42,8 +42,11 @@ async function loadPackets(){
       const dist_str = p.distance ? p.distance+' km' : '--';
       let pathBadge;
       if(p.path && p.path.startsWith('MESHCOM:')){
-        const meshLabel = p.path.split(':')[1].split('*')[0];
-        pathBadge = '<span class="path-badge path-meshcom" title="'+p.path+'">'+meshLabel+'</span>';
+        const meshParts = p.path.split(':')[1].split('*');
+        const meshType = meshParts[0];
+        const meshLabel = meshParts.length > 1 ? meshType+' via '+meshParts[1] : meshType;
+        const meshClass = meshParts.length > 1 ? 'path-meshcom-digi' : 'path-meshcom';
+        pathBadge = '<span class="path-badge '+meshClass+'" title="'+p.path+'">'+meshLabel+'</span>';
       }
       else if(p.path && p.path.includes('*')){
         const parts = p.path.split(',');
@@ -56,7 +59,11 @@ async function loadPackets(){
       }
       else
         pathBadge = '<span class="path-badge path-rf">RF</span>';
-      const callDisplay = (p.path && p.path.startsWith('MESHCOM:'))
+      const isMeshRelay = p.path && p.path.startsWith('MESHCOM:') && p.path.includes('*');
+      const isMeshDirect = p.path && p.path.startsWith('MESHCOM:') && !p.path.includes('*');
+      const callDisplay = isMeshRelay
+        ? '<span style="color:#ff8c00;font-weight:bold">'+p.callsign+'</span>'
+        : isMeshDirect
         ? '<span style="color:#bc8cff;font-weight:bold">'+p.callsign+'</span>'
         : '<span class="callsign">'+p.callsign+'</span>';
       tr.innerHTML = '<td style="color:var(--text-dim)">'+p.time+'</td>'
