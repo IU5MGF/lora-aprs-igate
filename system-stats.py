@@ -11,6 +11,17 @@ from config import DB_PATH, TIMEZONE, HAS_SSD, SSD_MOUNT
 
 ROME = pytz.timezone(TIMEZONE)
 
+def ensure_schema():
+    try:
+        db = sqlite3.connect(DB_PATH)
+        db.execute("ALTER TABLE system_stats ADD COLUMN disk_label TEXT")
+        db.commit()
+    except sqlite3.OperationalError:
+        pass
+    finally:
+        db.close()
+ensure_schema()
+
 def collect():
     try:
         temp_raw = open("/sys/class/thermal/thermal_zone0/temp").read().strip()
