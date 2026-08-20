@@ -251,7 +251,7 @@ def main():
             try:
                 db = sqlite3.connect(DB_PATH, timeout=10)
                 db.execute(
-                    "INSERT INTO packets VALUES (NULL,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    "INSERT INTO packets VALUES (NULL,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NULL)",
                     (ts, msg_type, callsign, path, crc_ok, rssi, snr, freq_err,
                      distance, lat, lon, comment, line, voltage)
                 )
