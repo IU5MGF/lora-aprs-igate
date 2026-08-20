@@ -16,7 +16,7 @@ header{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 
 .nav-btn{font-family:var(--mono);font-size:11px;padding:6px 14px;border:1px solid var(--border);background:transparent;color:var(--accent);cursor:pointer;letter-spacing:1px}
 .dropdown-menu{display:none;position:absolute;right:0;top:100%;background:var(--bg2);border:1px solid var(--border);z-index:1000;min-width:180px}
 .nav-dropdown.open .dropdown-menu{display:block}
-.dropdown-item{display:block;padding:8px 16px;font-family:var(--mono);font-size:11px;color:var(--text);text-decoration:none;letter-spacing:1px}
+.dropdown-item{display:block;padding:8px 16px;font-family:var(--mono);font-size:11px;color:var(--text);text-decoration:none;letter-spacing:1px}.dd-icon{display:inline-block;width:20px;text-align:center;flex-shrink:0}
 .dropdown-item:hover{background:var(--border);color:var(--accent)}
 .main{padding:20px;max-width:800px;margin:0 auto}
 .panel{background:var(--bg2);border:1px solid var(--border);border-radius:4px;margin-bottom:16px}
@@ -48,7 +48,7 @@ header{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 
   <div class="nav-dropdown" id="nav">
     <button class="nav-btn" onclick="document.getElementById('nav').classList.toggle('open')">MENU ▼</button>
     <div class="dropdown-menu">
-      <a class="dropdown-item" href="/settings">&#9881; IMPOSTAZIONI</a><a class="dropdown-item" href="/">&#128268; DASHBOARD</a><a class="dropdown-item" href="/stations">&#128290; STAZIONI</a><a class="dropdown-item" href="/stats">&#9998; STATISTICHE</a><a class="dropdown-item" href="/crc">&#9888; CRC</a><a class="dropdown-item" href="/events">&#128221; EVENTI</a><a class="dropdown-item" href="/server">&#128421; SERVER</a><a class="dropdown-item" href="/battery">&#128267; BATTERIA</a><a class="dropdown-item" href="/map">&#9783; MAPPA</a><a class="dropdown-item" href="/wx">&#127780; WX</a><a class="dropdown-item" href="/meshcom">&#128246; MESHCOM</a><a class="dropdown-item" href="/igate">&#128268; iGate WebUI</a></div>
+      <a class="dropdown-item" href="/settings"><span class="dd-icon">&#9881;</span>IMPOSTAZIONI</a><a class="dropdown-item" href="/"><span class="dd-icon">&#128268;</span>DASHBOARD</a><a class="dropdown-item" href="/stations"><span class="dd-icon">&#128290;</span>STAZIONI</a><a class="dropdown-item" href="/stats"><span class="dd-icon">&#9998;</span>STATISTICHE</a><a class="dropdown-item" href="/crc"><span class="dd-icon">&#9888;</span>CRC</a><a class="dropdown-item" href="/events"><span class="dd-icon">&#128221;</span>EVENTI</a><a class="dropdown-item" href="/server"><span class="dd-icon">&#128421;</span>SERVER</a><a class="dropdown-item" href="/battery"><span class="dd-icon">&#128267;</span>BATTERIA</a><a class="dropdown-item" href="/map"><span class="dd-icon">&#9783;</span>MAPPA</a><a class="dropdown-item" href="/wx"><span class="dd-icon">&#127780;</span>WX</a><a class="dropdown-item" href="/meshcom"><span class="dd-icon">&#128246;</span>MESHCOM</a><a class="dropdown-item" href="/igate"><span class="dd-icon">&#128268;</span>iGate WebUI</a></div>
   </div>
 </header>
 <div class="main">
