@@ -165,7 +165,8 @@ async function loadMap() {
       const isTrackerByComment = commentUpper.includes('TRACKER');
       const isGWbyRange = !isTrackerByComment && ssid !== null && ssid >= 10 && ssid <= 99;
       const isGWbyComment = !isGWbyRange && (commentUpper.includes('DIGI') || commentUpper.includes('IGATE') || commentUpper.includes('GATEWAY') || commentUpper.includes('GRF') || /^IR\d/.test(s.callsign) || /^IQ\d/.test(s.callsign) || (commentUpper.includes('LORA APRS') && (commentUpper.includes('IGATE') || commentUpper.includes('DIGI') || commentUpper.includes('GATEWAY'))));
-      const isMobile = !isBalloon && !isGWbyComment && !isGWbyRange && ssid !== null && !(ssid >= 10 && ssid <= 99);
+      const isMobileBySymbol = s.symbol === '>' || s.symbol === '<';
+      const isMobile = !isBalloon && (isMobileBySymbol || (!isGWbyComment && !isGWbyRange && ssid !== null && !(ssid >= 10 && ssid <= 99)));
       let html;
       if (isBalloon) {
         html = "<div style='position:relative'>"

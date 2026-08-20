@@ -170,7 +170,7 @@ def map_data():
         minutes = 60
     db = get_db()
     rows = db.execute("""
-        SELECT callsign, lat, lon, rssi, distance, timestamp, path, voltage, comment
+        SELECT callsign, lat, lon, rssi, distance, timestamp, path, voltage, comment, symbol
         FROM packets WHERE crc_ok=1 AND msg_type='RX'
         AND callsign IS NOT NULL
         AND lat IS NOT NULL AND lon IS NOT NULL
@@ -190,6 +190,7 @@ def map_data():
         "path": r["path"] or "",
         "voltage": r["voltage"],
         "comment": r["comment"] or "",
+        "symbol": r["symbol"] if "symbol" in r.keys() else None,
         "last_ts": r["timestamp"]} for r in rows]
     return jsonify(result)
 

@@ -28,7 +28,14 @@ def send_notify(msg):
     except Exception as e:
         log.warning(f"notify error: {e}")
 
+def ensure_symbol_column(db):
+    try:
+        db.execute("ALTER TABLE packets ADD COLUMN symbol TEXT")
+        db.commit()
+    except sqlite3.OperationalError:
+        pass
 def handle_pos(d, db):
+    ensure_symbol_column(db)
     src = d.get("src", "")
     parts = [p.strip() for p in src.split(",") if p.strip()]
     callsign = parts[0] if parts else ""
@@ -62,11 +69,12 @@ def handle_pos(d, db):
     comment = " ".join(comment_parts) if comment_parts else None
 
     ts = now_utc()
+    symbol = d.get("aprs_symbol")
     try:
         db.execute("""INSERT OR IGNORE INTO packets
-            (timestamp, callsign, path, lat, lon, comment, msg_type, crc_ok, rssi, snr)
-            VALUES (?,?,?,?,?,?,?,1,?,?)""",
-            (ts, callsign, mesh_path, lat_f, lon_f, comment, "RX", rssi, snr))
+            (timestamp, callsign, path, lat, lon, comment, msg_type, crc_ok, rssi, snr, symbol)
+            VALUES (?,?,?,?,?,?,?,1,?,?,?)""",
+            (ts, callsign, mesh_path, lat_f, lon_f, comment, "RX", rssi, snr, symbol))
         db.commit()
         log.info(f"POS: {callsign} lat={lat_f} lon={lon_f} batt={batt} alt={alt}")
     except Exception as e:
