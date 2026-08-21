@@ -20,6 +20,10 @@ try:
 except ImportError:
     HAS_MESHCOM = False
     MESHCOM_CALLSIGN = ""
+try:
+    from config import DISPLAY_NAME
+except ImportError:
+    DISPLAY_NAME = CALLSIGN
 
 DASHBOARD_DIR = os.path.join(os.path.dirname(DATA_DIR), "flask-dashboard")
 
@@ -52,19 +56,19 @@ def rome_time(ts):
 
 @app.route("/")
 def index():
-    return render_template_string(open(f"{DASHBOARD_DIR}/index.html").read(), callsign=CALLSIGN)
+    return render_template_string(open(f"{DASHBOARD_DIR}/index.html").read(), callsign=DISPLAY_NAME)
 
 @app.route("/map")
 def map_page():
-    return render_template_string(open(f"{DASHBOARD_DIR}/map.html").read(), callsign=CALLSIGN, lat=LATITUDE, lon=LONGITUDE)
+    return render_template_string(open(f"{DASHBOARD_DIR}/map.html").read(), callsign=DISPLAY_NAME, lat=LATITUDE, lon=LONGITUDE)
 
 @app.route("/stations")
 def stations_page():
-    return render_template_string(open(f"{DASHBOARD_DIR}/stations.html").read(), callsign=CALLSIGN)
+    return render_template_string(open(f"{DASHBOARD_DIR}/stations.html").read(), callsign=DISPLAY_NAME)
 
 @app.route("/stats")
 def stats_page():
-    return render_template_string(open(f"{DASHBOARD_DIR}/stats.html").read(), callsign=CALLSIGN)
+    return render_template_string(open(f"{DASHBOARD_DIR}/stats.html").read(), callsign=DISPLAY_NAME)
 
 def get_pi_model():
     try:
@@ -75,11 +79,11 @@ def get_pi_model():
 
 @app.route("/server")
 def server_page():
-    return render_template_string(open(f"{DASHBOARD_DIR}/server.html").read(), callsign=CALLSIGN, pi_model=get_pi_model())
+    return render_template_string(open(f"{DASHBOARD_DIR}/server.html").read(), callsign=DISPLAY_NAME, pi_model=get_pi_model())
 
 @app.route("/events")
 def events_page():
-    return render_template_string(open(f"{DASHBOARD_DIR}/events.html").read(), callsign=CALLSIGN)
+    return render_template_string(open(f"{DASHBOARD_DIR}/events.html").read(), callsign=DISPLAY_NAME)
 @app.route("/api/stats")
 def stats():
     db = get_db()
@@ -582,7 +586,7 @@ def system_update_status():
 
 @app.route("/settings")
 def settings_page():
-    return render_template_string(open(f"{DASHBOARD_DIR}/settings.html").read(), callsign=CALLSIGN)
+    return render_template_string(open(f"{DASHBOARD_DIR}/settings.html").read(), callsign=DISPLAY_NAME)
 
 @app.route("/api/settings", methods=["GET"])
 def settings_get():
@@ -593,6 +597,7 @@ def settings_get():
     spec.loader.exec_module(cfg)
     return jsonify({
         "CALLSIGN": getattr(cfg, "CALLSIGN", ""),
+        "DISPLAY_NAME": getattr(cfg, "DISPLAY_NAME", ""),
         "IGATE_IP": getattr(cfg, "IGATE_IP", ""),
         "IGATE_REBOOT_PW": getattr(cfg, "IGATE_REBOOT_PW", ""),
         "LATITUDE": getattr(cfg, "LATITUDE", 0),
@@ -610,7 +615,7 @@ def settings_post():
     cfg_path = "/usr/local/lib/lora-aprs/config.py"
     with open(cfg_path) as f:
         content = f.read()
-    fields = ["CALLSIGN", "IGATE_IP", "LATITUDE", "LONGITUDE", "MESHCOM_IP"]
+    fields = ["CALLSIGN", "DISPLAY_NAME", "IGATE_IP", "LATITUDE", "LONGITUDE", "MESHCOM_IP"]
     numeric_fields = {"LATITUDE", "LONGITUDE"}
     for key in fields:
         if key not in data:
@@ -637,10 +642,10 @@ def settings_post():
     return jsonify({"ok": True, "msg": "Impostazioni salvate — servizi in riavvio tra 2s"})
 @app.route("/battery")
 def battery_page():
-    return render_template_string(open(f"{DASHBOARD_DIR}/battery.html").read(), callsign=CALLSIGN)
+    return render_template_string(open(f"{DASHBOARD_DIR}/battery.html").read(), callsign=DISPLAY_NAME)
 @app.route("/crc")
 def crc_page():
-    return render_template_string(open(f"{DASHBOARD_DIR}/crc.html").read(), callsign=CALLSIGN)
+    return render_template_string(open(f"{DASHBOARD_DIR}/crc.html").read(), callsign=DISPLAY_NAME)
 @app.route("/api/crc")
 def crc_api():
     db = get_db()
@@ -762,7 +767,7 @@ def igate_proxy(subpath=""):
 def meshcom_page():
     if not HAS_MESHCOM:
         return "MeshCom non configurato", 404
-    return render_template_string(open(f"{DASHBOARD_DIR}/meshcom.html").read(), callsign=CALLSIGN)
+    return render_template_string(open(f"{DASHBOARD_DIR}/meshcom.html").read(), callsign=DISPLAY_NAME)
 
 @app.route("/api/meshcom/status")
 def meshcom_status():

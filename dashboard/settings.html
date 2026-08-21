@@ -54,7 +54,7 @@ header{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 
 <div class="main">
   <div class="panel">
     <div class="panel-header"><span class="panel-title">&#9881; CONFIGURAZIONE IGATE</span></div>
-    <div class="field"><label>Callsign</label><input id="CALLSIGN" type="text"></div>
+    <div class="field"><label>Callsign (es. IU5MGF-10)</label><input id="CALLSIGN" type="text"></div><div class="field"><label>Nome visualizzato</label><input id="DISPLAY_NAME" type="text"></div>
     <div class="field"><label>IP iGate</label><input id="IGATE_IP" type="text"></div>
     <div style="grid-column:1/-1;font-size:11px;color:var(--text-dim);margin-bottom:-8px">Coordinate del punto in cui e' installato l'iGate/Digipeater — servono a calcolare la copertura RF (distanze, poligono, heatmap)</div>
     <div class="field"><label>Latitudine</label><input id="LATITUDE" type="text"></div>
@@ -77,6 +77,7 @@ header{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 
 async function load() {
   const d = await (await fetch('/api/settings')).json();
   document.getElementById('CALLSIGN').value = d.CALLSIGN || '';
+  document.getElementById('DISPLAY_NAME').value = d.DISPLAY_NAME || '';
   document.getElementById('IGATE_IP').value = d.IGATE_IP || '';
   document.getElementById('LATITUDE').value = d.LATITUDE || '';
   document.getElementById('LONGITUDE').value = d.LONGITUDE || '';
@@ -91,6 +92,7 @@ async function save() {
   const body = {
     password: pw,
     CALLSIGN: document.getElementById('CALLSIGN').value,
+    DISPLAY_NAME: document.getElementById('DISPLAY_NAME').value,
     IGATE_IP: document.getElementById('IGATE_IP').value,
     LATITUDE: parseFloat(document.getElementById('LATITUDE').value),
     LONGITUDE: parseFloat(document.getElementById('LONGITUDE').value),
