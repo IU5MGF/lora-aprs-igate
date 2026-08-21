@@ -93,6 +93,12 @@ for svc in meshcom-poller meshcom-udp-listener; do
         sudo systemctl restart "$svc" 2>/dev/null && echo "  ✓ $svc riavviato"
     fi
 done
+# Verifica/ripristino cron system-stats (auto-guarigione se manca)
+if ! crontab -l 2>/dev/null | grep -q "system-stats.py"; then
+    echo -e "${YELLOW}  cron system-stats.py mancante, lo ripristino...${NC}"
+    (crontab -l 2>/dev/null; echo "*/15 * * * * /usr/bin/python3 /usr/local/bin/system-stats.py >> ${DATA_DIR}/system-stats.log 2>&1") | crontab -
+    echo "  ✓ cron system-stats.py ripristinato"
+fi
 # flask-dashboard per ultimo
 sudo systemctl restart flask-dashboard 2>/dev/null && echo "  ✓ flask-dashboard riavviato"
 echo ""
