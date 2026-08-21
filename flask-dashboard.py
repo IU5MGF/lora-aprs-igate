@@ -66,9 +66,16 @@ def stations_page():
 def stats_page():
     return render_template_string(open(f"{DASHBOARD_DIR}/stats.html").read(), callsign=CALLSIGN)
 
+def get_pi_model():
+    try:
+        with open("/proc/device-tree/model") as f:
+            return f.read().strip().replace("\x00", "")
+    except Exception:
+        return "Server"
+
 @app.route("/server")
 def server_page():
-    return render_template_string(open(f"{DASHBOARD_DIR}/server.html").read(), callsign=CALLSIGN)
+    return render_template_string(open(f"{DASHBOARD_DIR}/server.html").read(), callsign=CALLSIGN, pi_model=get_pi_model())
 
 @app.route("/events")
 def events_page():
@@ -98,12 +105,21 @@ def stats():
 
 @app.route("/api/packets")
 def packets():
+    hours = request.args.get("hours", "")
     db = get_db()
-    rows = db.execute("""
-        SELECT timestamp, callsign, path, rssi, snr, distance, comment FROM packets
-        WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL
-        ORDER BY id DESC LIMIT 50
-    """).fetchall()
+    if hours in ("1", "6", "24"):
+        rows = db.execute(f"""
+            SELECT timestamp, callsign, path, rssi, snr, distance, comment FROM packets
+            WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL
+            AND replace(timestamp,'T',' ') >= datetime('now', '-{hours} hours')
+            ORDER BY id DESC LIMIT 500
+        """).fetchall()
+    else:
+        rows = db.execute("""
+            SELECT timestamp, callsign, path, rssi, snr, distance, comment FROM packets
+            WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL
+            ORDER BY id DESC LIMIT 50
+        """).fetchall()
     db.close()
     result = []
     for r in rows:

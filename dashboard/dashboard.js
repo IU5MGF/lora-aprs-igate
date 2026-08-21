@@ -27,7 +27,10 @@ async function loadStats(){
 
 async function loadPackets(){
   try{
-    const data = await (await fetch('/api/packets')).json();
+    const hoursSel = document.getElementById('packets-hours');
+    const hours = hoursSel ? hoursSel.value : '';
+    const url = hours ? '/api/packets?hours='+hours : '/api/packets';
+    const data = await (await fetch(url)).json();
     document.getElementById('packets-count').textContent = data.length+' PKT';
     const tbody = document.getElementById('packets-body');
     const prevFirst = tbody.querySelector('tr') ? tbody.querySelector('tr').dataset.time : null;
