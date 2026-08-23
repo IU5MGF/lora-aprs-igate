@@ -26,7 +26,7 @@ def send_telegram(msg, alert=False):
     chat  = CHAT_ID_ALERT   if alert else CHAT_ID_NOTIFY
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     try:
-        r = requests.post(url, data={"chat_id": chat, "text": msg, "parse_mode": "HTML"})
+        r = requests.post(url, data={"chat_id": chat, "text": msg, "parse_mode": "HTML"}, timeout=15)
         if r.status_code != 200:
             print(f"Telegram error: {r.text}", flush=True)
     except Exception as e:
