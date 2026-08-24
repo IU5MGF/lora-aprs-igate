@@ -11,7 +11,7 @@
 <header><div class="logo"><div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg></div><div><div class="logo-text">{{ callsign }}</div><div class="logo-sub">Statistiche storiche</div></div></div><div class="header-right"><div class="nav-dropdown" id="navDropdown"><button class="nav-btn" onclick="document.getElementById('navDropdown').classList.toggle('open')">MENU &#9660;</button><div class="dropdown-menu"><a class="dropdown-item" href="/settings"><span class="dd-icon">&#9881;</span>IMPOSTAZIONI</a><a class="dropdown-item" href="/"><span class="dd-icon">&#128268;</span>DASHBOARD</a><a class="dropdown-item" href="/stations"><span class="dd-icon">&#128290;</span>STAZIONI</a><a class="dropdown-item" href="/stats"><span class="dd-icon">&#9998;</span>STATISTICHE</a><a class="dropdown-item" href="/crc"><span class="dd-icon">&#9888;</span>CRC</a><a class="dropdown-item" href="/events"><span class="dd-icon">&#128221;</span>EVENTI</a><a class="dropdown-item" href="/server"><span class="dd-icon">&#128421;</span>SERVER</a><a class="dropdown-item" href="/battery"><span class="dd-icon">&#128267;</span>BATTERIA</a><a class="dropdown-item" href="/map"><span class="dd-icon">&#9783;</span>MAPPA</a><a class="dropdown-item" href="/wx"><span class="dd-icon">&#127780;</span>WX</a><a class="dropdown-item" href="/meshcom"><span class="dd-icon">&#128246;</span>MESHCOM</a><a class="dropdown-item" href="/igate"><span class="dd-icon">&#128268;</span>iGate WebUI</a></div></div><script>document.addEventListener('click',function(e){var d=document.getElementById('navDropdown');if(d&&!d.contains(e.target))d.classList.remove('open');});</script></div></header>
 <div class="main">
 <div class="panel">
-<div class="panel-header"><span class="panel-title">Pacchetti giornalieri</span><div class="chart-legend"><div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div><span style="color:var(--text-dim)">RF diretta</span></div><div class="legend-item"><div class="legend-dot" style="background:var(--accent3)"></div><span style="color:var(--text-dim)">Digipeated</span></div><div class="legend-item"><div class="legend-dot" style="background:var(--accent2)"></div><span style="color:var(--text-dim)">CRC errors</span></div></div></div>
+<div class="panel-header"><span class="panel-title">Pacchetti giornalieri</span><div class="chart-legend"><div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div><span style="color:var(--text-dim)">Pacchetti totali</span></div><div class="legend-item"><div class="legend-dot" style="background:#ffffff"></div><span style="color:var(--text-dim)">RF diretta</span></div><div class="legend-item"><div class="legend-dot" style="background:var(--accent3)"></div><span style="color:var(--text-dim)">Digipeated</span></div><div class="legend-item"><div class="legend-dot" style="background:var(--accent2)"></div><span style="color:var(--text-dim)">CRC errors</span></div></div></div>
 <div class="chart-wrap"><div class="chart-bars" id="chart-daily"></div></div>
 </div>
 <div class="panel">
@@ -41,7 +41,7 @@ async function loadStats(){
   const W = chart.clientWidth || 900;
   const H = 160;
   const pad = {t:20, b:25, l:40, r:10};
-  const maxPkt = Math.max.apply(null, sorted.map(d => Math.max(d.total_rf||0, d.total_digi||0, d.crc_errors||0)).concat([1]));
+  const maxPkt = Math.max.apply(null, sorted.map(d => Math.max(d.total_packets||0, d.total_rf||0, d.total_digi||0, d.crc_errors||0)).concat([1]));
 
   function makeLine(values, color){
     const pts = values.map(function(v,i){
@@ -63,6 +63,7 @@ async function loadStats(){
     return first+' '+pts.join(' ')+' '+last;
   }
 
+  const totVals = sorted.map(d => d.total_packets || 0);
   const rfVals = sorted.map(d => d.total_rf || 0);
   const digiVals = sorted.map(d => d.total_digi || 0);
   const crcVals = sorted.map(d => d.crc_errors || 0);
@@ -85,9 +86,11 @@ async function loadStats(){
 
   chart.innerHTML = '<svg width="100%" height="'+H+'" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'
     +guidesSvg
-    +'<polygon points="'+makeArea(rfVals)+'" fill="rgba(0,212,255,0.08)"/>'
+    +'<polygon points="'+makeArea(totVals)+'" fill="rgba(0,212,255,0.08)"/>'
+    +'<polygon points="'+makeArea(rfVals)+'" fill="rgba(255,255,255,0.05)"/>'
     +'<polygon points="'+makeArea(digiVals)+'" fill="rgba(0,255,159,0.08)"/>'
-    +'<polyline points="'+makeLine(rfVals)+'" fill="none" stroke="#00d4ff" stroke-width="2" stroke-linejoin="round"/>'
+    +'<polyline points="'+makeLine(totVals)+'" fill="none" stroke="#00d4ff" stroke-width="2" stroke-linejoin="round"/>'
+    +'<polyline points="'+makeLine(rfVals)+'" fill="none" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/>'
     +'<polyline points="'+makeLine(digiVals)+'" fill="none" stroke="#00ff9f" stroke-width="2" stroke-linejoin="round"/>'
     +'<polyline points="'+makeLine(crcVals)+'" fill="none" stroke="#ff4d4d" stroke-width="2" stroke-linejoin="round"/>'
     +labelsSvg
