@@ -103,6 +103,9 @@ async function save() {
   document.getElementById('msg').textContent = d.msg;
   document.getElementById('msg').style.color = d.ok ? 'var(--accent3)' : 'var(--accent2)';
   document.getElementById('btn-save').disabled = false;
+  if (d.ok) {
+    setTimeout(function(){ location.reload(); }, 3000);
+  }
 }
 document.addEventListener('click',e=>{var d=document.getElementById('nav');if(d&&!d.contains(e.target))d.classList.remove('open');});
 load();
