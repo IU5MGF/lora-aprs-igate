@@ -62,6 +62,7 @@ for line in open('$CONFIG_PATH'):
     if m: print(m.group(1).strip()); break
 " "$1" 2>/dev/null; }
     DEF_CALLSIGN=$(_read_cfg "CALLSIGN")
+    DEF_DISPLAY_NAME=$(_read_cfg "DISPLAY_NAME")
     DEF_IGATE_IP=$(_read_cfg "IGATE_IP")
     DEF_REBOOT_PW=$(_read_cfg "IGATE_REBOOT_PW")
     DEF_BOT_NOTIFY=$(_read_cfg "BOT_TOKEN_NOTIFY")
@@ -76,7 +77,7 @@ for line in open('$CONFIG_PATH'):
     DEF_MESHCOM_IP=$(_read_cfg "MESHCOM_IP")
     DEF_MESHCOM_CALLSIGN=$(_read_cfg "MESHCOM_CALLSIGN")
 else
-    DEF_CALLSIGN=""; DEF_IGATE_IP="192.168.2.10"; DEF_REBOOT_PW="raspberry"
+    DEF_CALLSIGN=""; DEF_DISPLAY_NAME=""; DEF_IGATE_IP="192.168.2.10"; DEF_REBOOT_PW="raspberry"
     DEF_BOT_NOTIFY=""; DEF_CHAT_NOTIFY=""; DEF_BOT_ALERT=""; DEF_CHAT_ALERT=""
     DEF_LAT="43.6800"; DEF_LON="11.5300"; DEF_LOCATION="Reggello"
     DEF_TIMEZONE="Europe/Rome"; DEF_DB_RETENTION="30"
@@ -85,6 +86,8 @@ fi
 
 echo -e "${CYAN}--- Configurazione iGate ---${NC}"
 CALLSIGN=$(ask "Callsign iGate (es. IZ5XXX-10)" "$DEF_CALLSIGN")
+CALLSIGN=$(echo "$CALLSIGN" | tr '[:lower:]' '[:upper:]')
+DISPLAY_NAME=$(ask "Nome visualizzato (facoltativo)" "${DEF_DISPLAY_NAME:-$CALLSIGN}")
 IGATE_IP=$(ask "IP locale iGate" "${DEF_IGATE_IP:-192.168.2.10}")
 IGATE_REBOOT_PW=$(ask "Password reboot iGate" "${DEF_REBOOT_PW:-raspberry}")
 
@@ -181,6 +184,7 @@ sudo tee "$CONFIG_PATH" > /dev/null << CONFEOF
 # =============================================================================
 
 CALLSIGN        = "${CALLSIGN}"
+DISPLAY_NAME    = "${DISPLAY_NAME}"
 IGATE_IP        = "${IGATE_IP}"
 IGATE_REBOOT_PW = "${IGATE_REBOOT_PW}"
 
