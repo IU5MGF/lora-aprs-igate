@@ -17,8 +17,12 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         timestamp TEXT, msg_type TEXT, callsign TEXT, path TEXT,
         crc_ok INTEGER, rssi REAL, snr REAL, freq_err REAL,
-        distance REAL, lat REAL, lon REAL, comment TEXT, raw TEXT, voltage REAL
+        distance REAL, lat REAL, lon REAL, comment TEXT, raw TEXT, voltage REAL, symbol TEXT
     )''')
+    try:
+        c.execute("ALTER TABLE packets ADD COLUMN symbol TEXT")
+    except Exception:
+        pass
     c.execute('''CREATE TABLE IF NOT EXISTS stations (
         callsign TEXT PRIMARY KEY, first_seen TEXT, last_seen TEXT,
         total_packets INTEGER, max_distance REAL, max_distance_date TEXT,
