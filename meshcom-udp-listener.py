@@ -60,6 +60,11 @@ def handle_pos(d, db):
         return
 
     alt  = d.get("alt")
+    if alt is not None:
+        try:
+            alt = round(float(alt) * 0.3048)  # MeshCom invia l alt in piedi, convertito in metri
+        except (TypeError, ValueError):
+            pass
     batt = d.get("batt")
     rssi = d.get("rssi")
     snr  = d.get("snr")
