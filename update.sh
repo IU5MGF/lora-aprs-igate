@@ -174,6 +174,12 @@ if ! crontab -l 2>/dev/null | grep -q "system-stats.py"; then
     (crontab -l 2>/dev/null || true; echo "*/15 * * * * /usr/bin/python3 /usr/local/bin/system-stats.py >> ${DATA_DIR}/system-stats.log 2>&1") | crontab -
     echo "  ✓ cron system-stats.py ripristinato"
 fi
+# Riavvii notturni (iGate 03:30, server 03:35) messi dalle versioni vecchie di
+# install.sh: non servono più, si tolgono
+if crontab -l 2>/dev/null | grep -q "type=reboot\|^35 3 \* \* \* sudo reboot$"; then
+    crontab -l | grep -v "type=reboot\|^35 3 \* \* \* sudo reboot$" | crontab -
+    echo "  ✓ tolti dal cron i riavvii notturni di iGate e server"
+fi
 # flask-dashboard per ultimo, e fuori dal suo servizio: se update.sh è stato
 # lanciato dalla dashboard, un riavvio diretto ucciderebbe anche questo script
 # (e il blocco /tmp/system-update.running resterebbe lì)

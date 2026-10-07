@@ -172,7 +172,7 @@ Lo script esegue automaticamente: git pull, aggiunta a `config.py` delle imposta
 - MeshCom offline/online → alert Telegram (se HAS_MESHCOM=True)
 - Batteria iGate sotto 3,90 V → alert Telegram; ripristino sopra 4,00 V (mediana delle ultime 3 letture; soglie modificabili in config.py con BATTERY_LOW_V e BATTERY_OK_V)
 - Messaggio MeshCom diretto al proprio callsign → notifica speciale su bot alert
-- Solo installazione normale: ogni notte riavvio programmato dell'iGate alle 03:30 e del Raspberry alle 03:35 (cron dell'utente; per toglierli: `crontab -e` e cancella le due righe)
+- Nessun riavvio notturno programmato: le versioni precedenti riavviavano iGate (03:30) e Raspberry (03:35) ogni notte; `update.sh` toglie quelle righe dal cron
 
 ## Struttura repository
 

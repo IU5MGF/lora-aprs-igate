@@ -425,11 +425,10 @@ if [ "$DOCKER_MODE" = 1 ]; then
 CRONEOF
 ) | crontab -
 else
-(crontab -l 2>/dev/null | grep -v "lora-aprs\|mqtt-watchdog\|daily-stats\|system-stats\|backup\|reboot iGate" || true; cat << CRONEOF
+(crontab -l 2>/dev/null | grep -v "lora-aprs\|mqtt-watchdog\|daily-stats\|system-stats\|backup\|reboot iGate" \
+    | grep -v "type=reboot\|^35 3 \* \* \* sudo reboot$" || true; cat << CRONEOF
 # lora-aprs
 ${EXTRA_CRON}
-30 3 * * * curl -s -X POST "http://${IGATE_IP}/action" -d "type=reboot"
-35 3 * * * sudo reboot
 1 0 * * * /usr/bin/python3 /usr/local/bin/daily-stats.py >> ${DATA_DIR}/daily-stats.log 2>&1
 0 3 * * * /usr/bin/python3 /usr/local/bin/daily-stats.py >> ${DATA_DIR}/daily-stats.log 2>&1
 */15 * * * * /usr/bin/python3 /usr/local/bin/system-stats.py >> ${DATA_DIR}/system-stats.log 2>&1
