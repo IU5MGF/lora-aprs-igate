@@ -5,6 +5,15 @@
 
 set -e
 
+# Modalità: nativa (systemd, predefinita) oppure --docker (i servizi girano nei
+# container di docker-compose.yml; qui si preparano solo config, dati, pagine e cron)
+DOCKER_MODE=0
+case "${1:-}" in
+    --docker) DOCKER_MODE=1 ;;
+    "") ;;
+    *) echo "Uso: ./install.sh [--docker]"; exit 1 ;;
+esac
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -14,6 +23,7 @@ NC='\033[0m'
 echo -e "${CYAN}"
 echo "============================================="
 echo "   LoRa APRS iGate — Installer interattivo"
+[ "$DOCKER_MODE" = 1 ] && echo "   (modalità Docker)"
 echo "============================================="
 echo -e "${NC}"
 
@@ -221,9 +231,11 @@ echo -e "${GREEN}config.py scritto in ${CONFIG_PATH}${NC}"
 # Permessi scrittura per la pagina /settings + regola sudo per auto-restart dei servizi
 sudo chown "$(whoami):$(whoami)" "$CONFIG_PATH"
 sudo chmod 664 "$CONFIG_PATH"
+if [ "$DOCKER_MODE" = 0 ]; then
 echo "$(whoami) ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart flask-dashboard, /usr/bin/systemctl restart alerts, /usr/bin/systemctl restart mqtt-telegram, /usr/bin/systemctl restart syslog-collector" | sudo tee /etc/sudoers.d/lora-aprs-restart > /dev/null
 sudo chmod 440 /etc/sudoers.d/lora-aprs-restart
 sudo visudo -c > /dev/null && echo -e "${GREEN}Permessi /settings configurati (scrittura config.py + auto-restart servizi)${NC}" || echo -e "${YELLOW}Attenzione: verifica manuale sudoers necessaria${NC}"
+fi
 
 # Genera .env
 ENV_PATH="/usr/local/lib/lora-aprs/.env"
@@ -247,11 +259,18 @@ TIMEZONE=${TIMEZONE}
 ENVEOF
 echo -e "${GREEN}.env scritto in ${ENV_PATH}${NC}"
 
+if [ "$DOCKER_MODE" = 1 ]; then
+    echo ""
+    echo -e "${GREEN}Dipendenze per gli script statistiche (cron sull'host)...${NC}"
+    command -v docker >/dev/null || { echo -e "${RED}Docker non è installato: installalo prima (https://docs.docker.com/engine/install/)${NC}"; exit 1; }
+    sudo apt install -y python3-tz python3-requests
+else
 # =============================================================================
 # Configura mosquitto
 # =============================================================================
 echo ""
 echo -e "${GREEN}Configurazione mosquitto...${NC}"
+dpkg -s mosquitto >/dev/null 2>&1 || sudo apt install -y mosquitto mosquitto-clients
 if ! grep -q "listener 1883" /etc/mosquitto/mosquitto.conf 2>/dev/null; then
     sudo tee /etc/mosquitto/conf.d/lora-aprs.conf > /dev/null << MQTTEOF
 listener 1883
@@ -274,6 +293,7 @@ sudo pip3 install paho-mqtt requests pytz flask --break-system-packages 2>/dev/n
 if [ "$HAS_OLED" = "True" ]; then
     sudo pip3 install luma.oled pillow --break-system-packages
 fi
+fi
 
 # =============================================================================
 # Crea directory dati
@@ -291,7 +311,9 @@ sudo mkdir -p "$DATA_DIR"
 echo ""
 echo -e "${GREEN}Copia script in /usr/local/bin/...${NC}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-SCRIPTS="mqtt-telegram.py alerts.py cleanup.py system-stats.py daily-stats.py syslog-collector.py mqtt-watchdog.sh flask-dashboard.py"
+SCRIPTS="mqtt-telegram.py alerts.py cleanup.py system-stats.py daily-stats.py syslog-collector.py flask-dashboard.py"
+[ -f "$SCRIPT_DIR/mqtt-watchdog.sh" ] && SCRIPTS="$SCRIPTS mqtt-watchdog.sh"
+[ "$DOCKER_MODE" = 1 ] && SCRIPTS="system-stats.py daily-stats.py"
 for s in $SCRIPTS; do
     if [ -f "$SCRIPT_DIR/$s" ]; then
         sudo cp "$SCRIPT_DIR/$s" "/usr/local/bin/$s"
@@ -310,6 +332,7 @@ if [ "$HAS_OLED" = "True" ]; then
     fi
 fi
 
+if [ "$DOCKER_MODE" = 0 ]; then
 # =============================================================================
 # Installa servizi systemd
 # =============================================================================
@@ -380,17 +403,31 @@ if [ "$HAS_MESHCOM" = "True" ]; then
 fi
 
 sudo systemctl daemon-reload
+fi
 
 # =============================================================================
 # Crontab
 # =============================================================================
 echo ""
 echo -e "${GREEN}Configurazione crontab...${NC}"
+command -v crontab >/dev/null || sudo apt install -y --no-install-recommends cron
+# righe facoltative: solo se lo script esiste davvero
+EXTRA_CRON=""
+[ -f "${DATA_DIR}/../backup.sh" ] && EXTRA_CRON="0 2 * * * /bin/bash ${DATA_DIR}/../backup.sh"
+[ -f /usr/local/bin/mqtt-watchdog.sh ] && EXTRA_CRON="${EXTRA_CRON:+$EXTRA_CRON
+}*/10 * * * * /usr/local/bin/mqtt-watchdog.sh"
 
-(crontab -l 2>/dev/null | grep -v "lora-aprs\|mqtt-watchdog\|daily-stats\|system-stats\|backup\|reboot iGate"; cat << CRONEOF
+if [ "$DOCKER_MODE" = 1 ]; then
+(crontab -l 2>/dev/null | grep -v "lora-aprs\|daily-stats\|system-stats" || true; cat << CRONEOF
+# lora-aprs (docker)
+1 0 * * * /usr/bin/python3 /usr/local/bin/daily-stats.py >> ${DATA_DIR}/daily-stats.log 2>&1
+*/15 * * * * /usr/bin/python3 /usr/local/bin/system-stats.py >> ${DATA_DIR}/system-stats.log 2>&1
+CRONEOF
+) | crontab -
+else
+(crontab -l 2>/dev/null | grep -v "lora-aprs\|mqtt-watchdog\|daily-stats\|system-stats\|backup\|reboot iGate" || true; cat << CRONEOF
 # lora-aprs
-0 2 * * * /bin/bash ${DATA_DIR}/../backup.sh
-*/10 * * * * /usr/local/bin/mqtt-watchdog.sh
+${EXTRA_CRON}
 30 3 * * * curl -s -X POST "http://${IGATE_IP}/action" -d "type=reboot"
 35 3 * * * sudo reboot
 1 0 * * * /usr/bin/python3 /usr/local/bin/daily-stats.py >> ${DATA_DIR}/daily-stats.log 2>&1
@@ -398,6 +435,7 @@ echo -e "${GREEN}Configurazione crontab...${NC}"
 */15 * * * * /usr/bin/python3 /usr/local/bin/system-stats.py >> ${DATA_DIR}/system-stats.log 2>&1
 CRONEOF
 ) | crontab -
+fi
 
 echo "  ✓ Crontab configurato"
 
@@ -428,13 +466,29 @@ for f in "$DASHBOARD_DST"/*.html; do
     echo "  ✓ $(basename $f)"
 done
 
+if [ "$DOCKER_MODE" = 1 ]; then
+    echo ""
+    echo -e "${GREEN}Avvio dei container...${NC}"
+    RADIO_DIR="$(cd "${DATA_DIR}/.." && pwd)"
+    echo "RADIO_DIR=${RADIO_DIR}" > "$SCRIPT_DIR/.env"
+    # i container MeshCom partono solo se c'è il nodo
+    [ "$HAS_MESHCOM" = "True" ] && echo "COMPOSE_PROFILES=meshcom" >> "$SCRIPT_DIR/.env"
+    echo "  ✓ .env scritto (RADIO_DIR=${RADIO_DIR}$([ "$HAS_MESHCOM" = "True" ] && echo ', MeshCom attivo'))"
+    DC="docker compose"
+    docker info >/dev/null 2>&1 || DC="sudo docker compose"
+    (cd "$SCRIPT_DIR" && $DC build && \
+        $DC run --rm --no-deps syslog-collector python3 syslog-collector.py --init-only && \
+        $DC up -d)
+    sudo chown -R $(logname):$(logname) "$DATA_DIR" 2>/dev/null || true
+fi
+
 # =============================================================================
 # Fine
 # =============================================================================
 echo ""
 echo -e "${GREEN}============================================="
 echo " Installazione completata!"
-echo "=============================================${NC}"
+echo -e "=============================================${NC}"
 echo ""
 echo -e "  Dashboard:   ${CYAN}http://$(hostname -I | awk '{print $1}'):5000${NC}"
 echo -e "  Config:      ${CYAN}${CONFIG_PATH}${NC}"
@@ -446,4 +500,8 @@ echo -e "${YELLOW}   finché non arrivano i primi dati dal nodo LoRa.${NC}"
 echo -e "${YELLOW}   Per segnalazioni: https://github.com/IU5MGF/lora-aprs-igate${NC}"
 echo -e "${YELLOW}   73 de IU5MGF — ARI Valdarno (IQ5GX)${NC}"
 echo ""
-echo -e "${YELLOW}Controlla i servizi con: sudo systemctl status mqtt-telegram${NC}"
+if [ "$DOCKER_MODE" = 1 ]; then
+    echo -e "${YELLOW}Controlla i container con: cd $SCRIPT_DIR && docker compose ps${NC}"
+else
+    echo -e "${YELLOW}Controlla i servizi con: sudo systemctl status mqtt-telegram${NC}"
+fi

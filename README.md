@@ -11,7 +11,7 @@ Software completo per un iGate LoRa APRS basato su Raspberry Pi, con notifiche T
 - Ricezione pacchetti LoRa APRS via syslog UDP dal firmware CA2RXU
 - Parsing avanzato pacchetti: RF diretto, DIGI via callsign, pacchetti terza parte (gateway D-STAR/Echolink)
 - Notifiche Telegram in tempo reale per ogni stazione ricevuta
-- Alert separati per eventi di sistema (silenzio radio, iGate offline/online, servizi down)
+- Alert separati per eventi di sistema (silenzio radio, iGate offline/online, servizi down, batteria iGate bassa)
 - Alert Telegram per messaggi MeshCom diretti al proprio callsign
 - Dashboard web Flask con mappa OpenStreetMap, heatmap RF, tracker, statistiche
 - Mappa con filtro D-STAR/EL per nascondere ripetitori voce
@@ -48,6 +48,17 @@ Software completo per un iGate LoRa APRS basato su Raspberry Pi, con notifiche T
 
 ## Getting Started
 
+Il sistema si può installare in due modi, a scelta:
+
+| | **Installazione normale (systemd)** | **Installazione con Docker** |
+|---|---|---|
+| Come girano i servizi | servizi systemd sul Raspberry | container di `docker-compose.yml` |
+| Installazione | `./install.sh` | `./install.sh --docker` |
+| Aggiornamento | `./update.sh` (o dalla dashboard) | `./update.sh` (rileva Docker da solo) |
+| Riavvio server / aggiornamenti dalla dashboard | sì | no (si fanno sul server) |
+
+Se non sai quale scegliere, usa l'**installazione normale**. I passi seguenti valgono per entrambe; le differenze per Docker sono nella sezione [Installazione con Docker](#installazione-con-docker).
+
 **Cosa serve prima di iniziare:**
 - Raspberry Pi 4 o 5 con Raspberry Pi OS
 - LilyGo T3 v1.6.1 con firmware CA2RXU configurato
@@ -66,6 +77,8 @@ Nel pannello web del LilyGo imposta:
     sudo apt install -y mosquitto mosquitto-clients sqlite3 git python3-pip
     pip3 install flask requests pytz --break-system-packages
     sudo systemctl enable mosquitto
+
+> Se mancano, `install.sh` installa da solo mosquitto e cron (sui sistemi Debian minimali cron non c'è).
 
 **Passo 3 — Clona il repository**
 
@@ -108,14 +121,45 @@ Apri il browser su un PC della stessa rete:
 
     http://IP_RASPBERRY:5000
 
+## Installazione con Docker
+
+Alternativa all'installazione normale: i servizi Python girano in container, il resto (configurazione, database, pagine della dashboard, statistiche via cron) resta sul Raspberry.
+
+1. Installa Docker. Sul Raspberry Pi OS / Debian basta:
+
+       sudo apt install -y docker.io docker-compose
+       sudo usermod -aG docker $USER
+
+   poi esci e riaccedi (oppure usa la guida ufficiale: https://docs.docker.com/engine/install/).
+2. Clona il repository come al Passo 3.
+3. Avvia l'installer in modalità Docker:
+
+       ./install.sh --docker
+
+   Fa le stesse domande dell'installazione normale, poi crea il file `.env` con `RADIO_DIR` (la cartella che contiene `data/` e `flask-dashboard/`), costruisce i container, inizializza il database e avvia lo stack. Mosquitto e i servizi systemd non vengono installati. Il primo avvio scarica l'immagine Python (circa 50 MB) e costruisce i container: qualche minuto.
+4. Verifica:
+
+       docker compose ps
+
+   Tutti i container devono risultare **running**.
+
+Note per Docker:
+- Il container `docker-proxy` espone ai soli container dello stack una vista **in sola lettura** di Docker, usata dalle luci di stato della pagina SERVER.
+- Dopo un salvataggio dalla pagina IMPOSTAZIONI la dashboard si riavvia da sola; per applicare i cambi anche agli altri servizi: `docker compose restart`.
+- Riavvio del server e aggiornamenti di sistema/GitHub dalla dashboard non sono disponibili: si fanno da terminale.
+- I container MeshCom (`meshcom-poller`, `meshcom-udp-listener`) partono solo se c'è il nodo: con `HAS_MESHCOM = True` il file `.env` contiene `COMPOSE_PROFILES=meshcom`. `install.sh --docker` e `update.sh` lo scrivono o lo tolgono da soli; se cambi `HAS_MESHCOM` a mano, lancia `./update.sh`.
+- Le statistiche (`daily-stats.py`, `system-stats.py`) girano dal cron del Raspberry, non nei container.
+
 ## Aggiornamento
 
-Per aggiornare il sistema a una versione più recente:
+Per aggiornare il sistema a una versione più recente, in **entrambe** le modalità:
 
     cd lora-aprs-igate
-    bash update.sh
+    ./update.sh
 
-Lo script esegue automaticamente: git pull, copia dei file aggiornati, inizializzazione DB (nuove tabelle se presenti), riavvio servizi.
+Si può lanciare anche dalla dashboard (pagina SERVER, solo installazione normale): il log è in `/tmp/system-update.log` e alla fine la dashboard si riavvia da sola.
+
+Lo script esegue automaticamente: git pull, aggiunta a `config.py` delle impostazioni nuove (installazioni vecchie), copia dei file aggiornati e delle pagine della dashboard con la tua località, inizializzazione DB (nuove tabelle se presenti), riavvio dei servizi. Se trova il file `.env` con `RADIO_DIR` (installazione Docker) ricostruisce e riavvia i container invece dei servizi systemd.
 
 ## Cosa aspettarsi
 
@@ -126,13 +170,17 @@ Lo script esegue automaticamente: git pull, copia dei file aggiornati, inizializ
 - Silenzio radio da 120 minuti → reboot automatico iGate e RPi
 - iGate offline/online → alert Telegram
 - MeshCom offline/online → alert Telegram (se HAS_MESHCOM=True)
+- Batteria iGate sotto 3,90 V → alert Telegram; ripristino sopra 4,00 V (mediana delle ultime 3 letture; soglie modificabili in config.py con BATTERY_LOW_V e BATTERY_OK_V)
 - Messaggio MeshCom diretto al proprio callsign → notifica speciale su bot alert
+- Solo installazione normale: ogni notte riavvio programmato dell'iGate alle 03:30 e del Raspberry alle 03:35 (cron dell'utente; per toglierli: `crontab -e` e cancella le due righe)
 
 ## Struttura repository
 
     lora-aprs-igate/
-    ├── install.sh               # Installer interattivo
-    ├── update.sh                # Aggiornamento guidato
+    ├── install.sh               # Installer interattivo (--docker per la modalità Docker)
+    ├── update.sh                # Aggiornamento guidato (systemd e Docker)
+    ├── Dockerfile               # Immagine Python comune ai servizi (modalità Docker)
+    ├── docker-compose.yml       # Stack Docker (richiede .env con RADIO_DIR; profilo "meshcom")
     ├── README.md
     ├── GUIDA.md
     ├── dashboard/               # Template HTML dashboard
@@ -157,13 +205,15 @@ Lo script esegue automaticamente: git pull, copia dei file aggiornati, inizializ
     ├── meshcom-poller.py        # Poller HTTP nodo MeshCom
     └── meshcom-udp-listener.py  # Listener UDP MeshCom porta 1799
 
-## Servizi systemd
+## Servizi
+
+Nell'installazione normale sono servizi systemd (`sudo systemctl status <nome>`), in quella Docker sono i container `igate-<nome>` (`docker compose ps`, `docker compose logs <nome>`).
 
 | Servizio | Descrizione |
 |---|---|
 | syslog-collector | Riceve pacchetti dall'iGate via UDP 1514 |
 | mqtt-telegram | Notifiche Telegram + report giornaliero |
-| alerts | Monitor silenzio, iGate/MeshCom offline, servizi down |
+| alerts | Monitor silenzio, iGate/MeshCom offline, servizi down, batteria bassa |
 | cleanup | Pulizia DB ogni ora |
 | flask-dashboard | Dashboard web porta 5000 |
 | meshcom-poller | Polling HTTP nodo MeshCom (solo se HAS_MESHCOM=True) |

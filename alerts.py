@@ -1,10 +1,10 @@
 import sqlite3
 import requests
 import time
-import subprocess
 import pytz
 import sys
 import os
+import subprocess
 from datetime import datetime, timezone, timedelta
 
 sys.path.insert(0, "/usr/local/lib/lora-aprs")
@@ -21,6 +21,13 @@ IGATE_OFFLINE_MINUTES = 30
 CHECK_INTERVAL        = 60
 
 ALERT_STATE_FILE = os.path.join(DATA_DIR, "alert_state.json")
+
+# Modalità di esecuzione: in Docker non esistono systemctl né "localhost:5000"
+# (la dashboard è un altro container). IGATE_RUNTIME e DASHBOARD_URL arrivano
+# dal docker-compose.yml; senza variabili vale l'installazione nativa (systemd).
+IN_DOCKER     = os.environ.get("IGATE_RUNTIME") == "docker" or os.path.exists("/.dockerenv")
+DASHBOARD_URL = os.environ.get("DASHBOARD_URL",
+                               "http://flask-dashboard:5000" if IN_DOCKER else "http://localhost:5000")
 
 def load_alert_state():
     try:
@@ -75,22 +82,103 @@ def reboot_igate():
     except Exception as e:
         print(f"Reboot iGate error: {e}", flush=True)
 
-def reboot_rpi():
-    print("Reboot RPi in corso...", flush=True)
-    subprocess.Popen(["sudo", "reboot"])
+SERVICE_STALE_MINUTES = 30
+
+SERVICE_DESCR = {
+    "syslog-collector": "syslog-collector (nessun dato nel DB da oltre %d min)" % SERVICE_STALE_MINUTES,
+    "mqtt-telegram": "mqtt-telegram (notifiche Telegram ferme)",
+    "flask-dashboard": "flask-dashboard (dashboard non risponde)",
+}
+
+# Docker: systemctl non esiste nei container, la salute dei servizi si deduce da segnali
+# osservabili (HTTP, dati nel DB). In caso di dubbio (DB bloccato ecc.) le sonde
+# rispondono "attivo" per non generare falsi allarmi.
+def probe_flask_dashboard():
+    try:
+        return requests.get(f"{DASHBOARD_URL}/api/live_temp", timeout=5).status_code == 200
+    except Exception:
+        return False
+
+def probe_syslog_collector():
+    try:
+        db = sqlite3.connect(DB_PATH)
+        row = db.execute("SELECT MAX(timestamp) FROM packets").fetchone()
+        db.close()
+        if not row or not row[0]:
+            return True
+        last_ts = datetime.strptime(row[0][:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)
+        return (datetime.now(timezone.utc) - last_ts).total_seconds() / 60 < SERVICE_STALE_MINUTES
+    except Exception:
+        return True
+
+def probe_mqtt_telegram():
+    try:
+        with open(os.path.join(DATA_DIR, "last_notified_id"), "r") as f:
+            last_id = int(f.read().strip())
+    except Exception:
+        return True
+    try:
+        cutoff = (datetime.now(timezone.utc) - timedelta(minutes=3)).strftime("%Y-%m-%dT%H:%M:%S")
+        db = sqlite3.connect(DB_PATH)
+        row = db.execute(
+            """SELECT COUNT(*) FROM packets WHERE id > ? AND crc_ok=1 AND msg_type='RX'
+               AND callsign IS NOT NULL AND callsign != ? AND (path IS NULL OR path != 'MESHCOM')
+               AND timestamp < ?""",
+            (last_id, CALLSIGN, cutoff)
+        ).fetchone()
+        db.close()
+        return row[0] == 0
+    except Exception:
+        return True
+
+SERVICE_PROBES = {
+    "syslog-collector": probe_syslog_collector,
+    "mqtt-telegram": probe_mqtt_telegram,
+    "flask-dashboard": probe_flask_dashboard,
+}
+
 def check_containers():
-    services = ["mosquitto", "syslog-collector", "mqtt-telegram", "flask-dashboard"]
-    for name in services:
+    if not IN_DOCKER:
+        check_services_systemd()
+        return
+    for name, probe in SERVICE_PROBES.items():
+        running = probe()
+        descr = SERVICE_DESCR[name]
+        was_down = alert_state["containers"].get(name, False)
+        if not running and not was_down:
+            send_alert(
+                f"\U0001f494 <b>ALERT \u2014 Servizio DOWN</b>\n"
+                f"\u274c {descr}\n"
+                f"\u23f1 {datetime.now(ROME).strftime('%H:%M')}"
+            )
+            print(f"ALERT: {name} down", flush=True)
+            alert_state["containers"][name] = True
+        elif running and was_down:
+            send_alert(
+                f"\u2705 <b>RIPRISTINO \u2014 Servizio UP</b>\n"
+                f"\u2705 {name} tornato attivo\n"
+                f"\u23f1 {datetime.now(ROME).strftime('%H:%M')}"
+            )
+            print(f"RIPRISTINO: {name} up", flush=True)
+            alert_state["containers"][name] = False
+    save_alert_state()
+
+# Installazione nativa: stato reale dei servizi da systemctl, con il riavvio
+# automatico una tantum del server se syslog-collector resta giù per 3 cicli.
+SYSTEMD_SERVICES = ["mosquitto", "syslog-collector", "mqtt-telegram", "flask-dashboard"]
+
+def check_services_systemd():
+    for name in SYSTEMD_SERVICES:
         try:
             result = subprocess.run(["systemctl", "is-active", name],
                                     capture_output=True, text=True)
             running = result.stdout.strip() == "active"
-        except:
+        except Exception:
             running = False
         was_down = alert_state["containers"].get(name, False)
         if not running and not was_down:
             send_alert(
-                f"\U0001f494 <b>ALERT — Servizio DOWN</b>\n"
+                f"\U0001f494 <b>ALERT \u2014 Servizio DOWN</b>\n"
                 f"\u274c {name} non attivo\n"
                 f"\u23f1 {datetime.now(ROME).strftime('%H:%M')}"
             )
@@ -98,16 +186,13 @@ def check_containers():
             alert_state["containers"][name] = True
         elif running and was_down:
             send_alert(
-                f"\u2705 <b>RIPRISTINO — Servizio UP</b>\n"
+                f"\u2705 <b>RIPRISTINO \u2014 Servizio UP</b>\n"
                 f"\u2705 {name} tornato attivo\n"
                 f"\u23f1 {datetime.now(ROME).strftime('%H:%M')}"
             )
             print(f"RIPRISTINO: {name} up", flush=True)
             alert_state["containers"][name] = False
 
-        # Riavvio automatico one-shot per syslog-collector: se resta giu
-        # per 3 cicli consecutivi (~3 min), prova un riavvio del server
-        # una sola volta. Se persiste anche dopo, serve controllo fisico.
         if name == "syslog-collector":
             if not running:
                 count = alert_state.get("syslog_down_count", 0) + 1
@@ -129,7 +214,7 @@ def check_containers():
             else:
                 alert_state["syslog_down_count"] = 0
                 alert_state["auto_reboot_done"] = False
-        save_alert_state()
+    save_alert_state()
 
 def check_silence():
     try:
@@ -146,17 +231,15 @@ def check_silence():
             minutes_ago = (datetime.now(timezone.utc) - last_ts).total_seconds() / 60
             if minutes_ago >= REBOOT_MINUTES and alert_state["silence"]:
                 send_alert(
-                    f"\U0001f504 <b>REBOOT AUTOMATICO</b>\n"
+                    f"\U0001f504 <b>REBOOT AUTOMATICO iGate</b>\n"
                     f"Nessun pacchetto da <b>{int(minutes_ago)} minuti</b>\n"
-                    f"Riavvio iGate e server in corso...\n"
+                    f"Riavvio iGate in corso...\n"
                     f"\u23f1 {datetime.now(ROME).strftime('%H:%M')}"
                 )
-                log_event("REBOOT", f"Reboot automatico dopo {int(minutes_ago)} minuti di silenzio")
+                log_event("REBOOT", f"Reboot iGate dopo {int(minutes_ago)} minuti di silenzio")
                 alert_state["silence"] = False
                 save_alert_state()
                 reboot_igate()
-                time.sleep(5)
-                reboot_rpi()
             elif minutes_ago >= SILENCE_MINUTES and not alert_state["silence"]:
                 send_alert(
                     f"\U0001f507 <b>ALERT — Silenzio radio</b>\n"
@@ -243,7 +326,7 @@ def check_meshcom():
         print(f"MeshCom check error: {e}", flush=True)
 def check_temperature():
     try:
-        r = requests.get("http://localhost:5000/api/live_temp", timeout=5)
+        r = requests.get(f"{DASHBOARD_URL}/api/live_temp", timeout=5)
         temp = r.json().get("temp")
         if temp is None:
             return
@@ -268,6 +351,51 @@ def check_temperature():
     except Exception as e:
         print(f"Temperature check error: {e}", flush=True)
 
+# Soglie batteria iGate (volt). Configurabili in config.py con BATTERY_LOW_V e
+# BATTERY_OK_V; l'isteresi evita avvisi a raffica quando la tensione oscilla.
+import config as _cfg
+BATTERY_LOW_V        = getattr(_cfg, "BATTERY_LOW_V", 3.90)
+BATTERY_OK_V         = getattr(_cfg, "BATTERY_OK_V", 4.00)
+BATTERY_SAMPLES      = 3    # mediana delle ultime N letture, contro i valori spuri
+BATTERY_MAX_AGE_MIN  = 120  # letture più vecchie vengono ignorate (c'è già l'avviso iGate offline)
+
+def check_battery():
+    try:
+        db = sqlite3.connect(DB_PATH)
+        rows = db.execute(
+            """SELECT timestamp, voltage FROM packets
+               WHERE callsign=? AND voltage IS NOT NULL AND voltage > 3 AND voltage < 5
+               ORDER BY id DESC LIMIT ?""",
+            (CALLSIGN, BATTERY_SAMPLES)
+        ).fetchall()
+        db.close()
+        if len(rows) < BATTERY_SAMPLES:
+            return
+        last_ts = datetime.strptime(rows[0][0][:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)
+        if (datetime.now(timezone.utc) - last_ts).total_seconds() / 60 > BATTERY_MAX_AGE_MIN:
+            return
+        volt = sorted(r[1] for r in rows)[BATTERY_SAMPLES // 2]
+        if volt < BATTERY_LOW_V and not alert_state.get("battery_low", False):
+            send_alert(
+                f"\U0001faab <b>ALERT \u2014 Batteria iGate bassa</b>\n"
+                f"{CALLSIGN}: {volt:.2f} V (soglia {BATTERY_LOW_V:.2f} V)\n"
+                f"\u23f1 {datetime.now(ROME).strftime('%H:%M')}"
+            )
+            alert_state["battery_low"] = True
+            save_alert_state()
+            log_event("BATTERY_LOW", f"Batteria bassa: {volt:.2f} V")
+        elif volt >= BATTERY_OK_V and alert_state.get("battery_low", False):
+            send_alert(
+                f"\u2705 <b>RIPRISTINO \u2014 Batteria iGate ok</b>\n"
+                f"{CALLSIGN}: {volt:.2f} V\n"
+                f"\u23f1 {datetime.now(ROME).strftime('%H:%M')}"
+            )
+            alert_state["battery_low"] = False
+            save_alert_state()
+            log_event("BATTERY_OK", f"Batteria tornata a {volt:.2f} V")
+    except Exception as e:
+        print(f"Battery check error: {e}", flush=True)
+
 print("Avvio alerts.py", flush=True)
 log_event("AVVIO", "Sistema alert avviato")
 send_alert(
@@ -281,4 +409,5 @@ while True:
     check_igate()
     check_meshcom()
     check_temperature()
+    check_battery()
     time.sleep(CHECK_INTERVAL)

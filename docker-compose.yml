@@ -1,0 +1,102 @@
+# =============================================================================
+# docker-compose.yml — LoRa APRS iGate in Docker (alternativa all'installazione
+# nativa con systemd). Prima di avviarlo:
+#   1. esegui install.sh --docker (crea config.py, cartelle dati, pagine e cron)
+#   2. crea il file .env accanto a questo file con:  RADIO_DIR=/home/<utente>/radio
+#      (la cartella che contiene data/ e flask-dashboard/; install.sh --docker lo crea)
+#   3. docker compose up -d --build
+# Nodo MeshCom (HAS_MESHCOM = True): aggiungere al .env  COMPOSE_PROFILES=meshcom
+# (install.sh --docker e update.sh lo fanno da soli).
+# I percorsi sono montati identici dentro i container: DATA_DIR in config.py
+# deve valere ${RADIO_DIR}/data.
+# =============================================================================
+services:
+  flask-dashboard:
+    build: .
+    container_name: igate-flask-dashboard
+    command: python3 flask-dashboard.py
+    environment:
+      - DOCKER_PROXY_URL=http://docker-proxy:2375
+      - IGATE_RUNTIME=docker
+    ports:
+      - "5000:5000"
+    volumes:
+      - ${RADIO_DIR:?imposta RADIO_DIR nel file .env}/data:${RADIO_DIR}/data
+      - ${RADIO_DIR}/flask-dashboard:${RADIO_DIR}/flask-dashboard:ro
+      # scrivibile: la pagina /settings salva qui
+      - /usr/local/lib/lora-aprs:/usr/local/lib/lora-aprs
+    restart: unless-stopped
+
+  mqtt-telegram:
+    build: .
+    container_name: igate-mqtt-telegram
+    command: python3 mqtt-telegram.py
+    volumes:
+      - ${RADIO_DIR:?imposta RADIO_DIR nel file .env}/data:${RADIO_DIR}/data
+      - /usr/local/lib/lora-aprs:/usr/local/lib/lora-aprs:ro
+    restart: unless-stopped
+
+  alerts:
+    build: .
+    container_name: igate-alerts
+    command: python3 alerts.py
+    environment:
+      - IGATE_RUNTIME=docker
+      - DASHBOARD_URL=http://flask-dashboard:5000
+    volumes:
+      - ${RADIO_DIR:?imposta RADIO_DIR nel file .env}/data:${RADIO_DIR}/data
+      - /usr/local/lib/lora-aprs:/usr/local/lib/lora-aprs:ro
+    restart: unless-stopped
+
+  cleanup:
+    build: .
+    container_name: igate-cleanup
+    command: python3 cleanup.py
+    volumes:
+      - ${RADIO_DIR:?imposta RADIO_DIR nel file .env}/data:${RADIO_DIR}/data
+      - /usr/local/lib/lora-aprs:/usr/local/lib/lora-aprs:ro
+    restart: unless-stopped
+
+  syslog-collector:
+    build: .
+    container_name: igate-syslog-collector
+    command: python3 syslog-collector.py
+    ports:
+      - "1514:1514/udp"
+    volumes:
+      - ${RADIO_DIR:?imposta RADIO_DIR nel file .env}/data:${RADIO_DIR}/data
+      - /usr/local/lib/lora-aprs:/usr/local/lib/lora-aprs:ro
+    restart: unless-stopped
+
+  meshcom-udp-listener:
+    profiles: ["meshcom"]   # attivo solo con COMPOSE_PROFILES=meshcom nel .env
+    build: .
+    container_name: igate-meshcom-udp-listener
+    command: python3 meshcom-udp-listener.py
+    ports:
+      - "1799:1799/udp"
+    volumes:
+      - ${RADIO_DIR:?imposta RADIO_DIR nel file .env}/data:${RADIO_DIR}/data
+      - /usr/local/lib/lora-aprs:/usr/local/lib/lora-aprs:ro
+    restart: unless-stopped
+
+  meshcom-poller:
+    profiles: ["meshcom"]   # attivo solo con COMPOSE_PROFILES=meshcom nel .env
+    build: .
+    container_name: igate-meshcom-poller
+    command: python3 meshcom-poller.py
+    volumes:
+      - ${RADIO_DIR:?imposta RADIO_DIR nel file .env}/data:${RADIO_DIR}/data
+      - /usr/local/lib/lora-aprs:/usr/local/lib/lora-aprs:ro
+    restart: unless-stopped
+
+  # Proxy in sola lettura del socket Docker: espone SOLO GET /containers/* alla rete
+  # interna del compose (nessuna porta pubblicata), per le luci di stato di /server.
+  docker-proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    container_name: igate-docker-proxy
+    environment:
+      - CONTAINERS=1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped

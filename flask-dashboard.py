@@ -475,10 +475,27 @@ def daily_stats_api():
         "best_callsign": r["best_callsign"] or "-", "rssi_avg": r["rssi_avg"],
         "crc_errors": r["crc_errors"], "peak_hour": r["peak_hour"] or "-"} for r in rows])
 
+# In Docker lo stato dei servizi si legge da un proxy in sola lettura del socket
+# Docker (DOCKER_PROXY_URL, es. http://docker-proxy:2375): systemctl non esiste nei
+# container. Senza la variabile (installazione nativa) si usa systemctl come prima.
+DOCKER_PROXY_URL = os.environ.get("DOCKER_PROXY_URL")
+IN_DOCKER = bool(DOCKER_PROXY_URL) or os.path.exists("/.dockerenv")
+DOCKER_MSG = "Non disponibile in Docker: usa i comandi sul server (vedi README)"
+
 @app.route("/api/services_status")
 def services_status():
     services = ["mosquitto", "syslog-collector", "mqtt-telegram", "flask-dashboard",
-                "alerts", "cleanup", "meshcom-poller", "meshcom-udp-listener"]
+                "alerts", "cleanup"]
+    if HAS_MESHCOM:   # senza nodo i servizi MeshCom non sono installati: niente luce rossa
+        services += ["meshcom-poller", "meshcom-udp-listener"]
+    if DOCKER_PROXY_URL:
+        try:
+            containers = req.get(f"{DOCKER_PROXY_URL}/containers/json", timeout=3).json()
+            running = {c.get("Labels", {}).get("com.docker.compose.service") for c in containers}
+            # mosquitto non fa parte dello stack Docker: niente chiave = luce grigia (non monitorato)
+            return jsonify({n: n in running for n in services if n != "mosquitto"})
+        except Exception:
+            return jsonify({})  # stato non leggibile: luci grigie, non rosse
     result = {}
     for name in services:
         try:
@@ -537,6 +554,8 @@ def reboot():
                 return jsonify({"ok": True, "msg": "iGate riavviato"})
             return jsonify({"ok": False, "msg": "iGate non raggiungibile"})
     else:
+        if IN_DOCKER:
+            return jsonify({"ok": False, "msg": DOCKER_MSG})
         subprocess.Popen(["sudo", "reboot"])
         return jsonify({"ok": True, "msg": "Server in riavvio..."})
 @app.route("/api/git-update", methods=["POST"])
@@ -544,6 +563,8 @@ def git_update():
     password = request.json.get("password", "")
     if password != IGATE_REBOOT_PW:
         return jsonify({"ok": False, "msg": "Password errata"})
+    if IN_DOCKER:
+        return jsonify({"ok": False, "msg": DOCKER_MSG})
     if os.path.exists("/tmp/system-update.running"):
         return jsonify({"ok": False, "msg": "Aggiornamento gia in corso"})
     open("/tmp/system-update.running", "w").close()
@@ -563,6 +584,8 @@ def system_update():
     password = request.json.get("password", "")
     if password != IGATE_REBOOT_PW:
         return jsonify({"ok": False, "msg": "Password errata"})
+    if IN_DOCKER:
+        return jsonify({"ok": False, "msg": DOCKER_MSG})
     if os.path.exists("/tmp/system-update.running"):
         return jsonify({"ok": False, "msg": "Aggiornamento gia in corso"})
     open("/tmp/system-update.running", "w").close()
@@ -599,7 +622,6 @@ def settings_get():
         "CALLSIGN": getattr(cfg, "CALLSIGN", ""),
         "DISPLAY_NAME": getattr(cfg, "DISPLAY_NAME", ""),
         "IGATE_IP": getattr(cfg, "IGATE_IP", ""),
-        "IGATE_REBOOT_PW": getattr(cfg, "IGATE_REBOOT_PW", ""),
         "LATITUDE": getattr(cfg, "LATITUDE", 0),
         "LONGITUDE": getattr(cfg, "LONGITUDE", 0),
         "MESHCOM_IP": getattr(cfg, "MESHCOM_IP", ""),
@@ -612,32 +634,55 @@ def settings_post():
     pw = data.get("password", "")
     if pw != IGATE_REBOOT_PW:
         return jsonify({"ok": False, "msg": "Password errata"})
+    import re
     cfg_path = "/usr/local/lib/lora-aprs/config.py"
-    with open(cfg_path) as f:
-        content = f.read()
     fields = ["CALLSIGN", "DISPLAY_NAME", "IGATE_IP", "LATITUDE", "LONGITUDE", "MESHCOM_IP"]
     numeric_fields = {"LATITUDE", "LONGITUDE"}
+    # I valori finiscono dentro config.py (codice Python): si accettano solo
+    # numeri per le coordinate e testo senza virgolette, barre o a capo.
+    updates = {}
     for key in fields:
         if key not in data:
             continue
         val = data[key]
         if key in numeric_fields:
-            content = __import__("re").sub(
-                rf'^{key}\s*=\s*[\d.\-]+',
-                f'{key}        = {val}',
-                content, flags=__import__("re").MULTILINE
-            )
+            try:
+                val = float(val)
+            except (TypeError, ValueError):
+                return jsonify({"ok": False, "msg": f"{key}: valore numerico non valido"})
+            updates[key] = f"{key} = {val}"
         else:
-            content = __import__("re").sub(
-                rf'^{key}\s*=\s*"[^"]*"',
-                f'{key}        = "{val}"',
-                content, flags=__import__("re").MULTILINE
-            )
-    with open(cfg_path, "w") as f:
-        f.write(content)
-    subprocess.Popen(["sudo", "systemctl", "restart", "alerts", "mqtt-telegram", "syslog-collector"])
+            val = str(val).strip()
+            if re.search(r'["\'\\\n\r]', val) or len(val) > 64:
+                return jsonify({"ok": False, "msg": f"{key}: caratteri non ammessi (niente virgolette o barre)"})
+            if key == "CALLSIGN":
+                val = val.upper()
+            updates[key] = f'{key} = "{val}"'
+    try:
+        with open(cfg_path) as f:
+            content = f.read()
+        for key, line in updates.items():
+            pattern = rf'^{key}\s*=.*$'
+            if re.search(pattern, content, flags=re.MULTILINE):
+                content = re.sub(pattern, lambda m: line, content, count=1, flags=re.MULTILINE)
+            else:
+                # installazioni vecchie: la riga non esisteva, la si aggiunge in fondo
+                content = content.rstrip("\n") + "\n" + line + "\n"
+        with open(cfg_path, "w") as f:
+            f.write(content)
+    except OSError as e:
+        return jsonify({"ok": False, "msg": f"Impossibile salvare config.py: {e.strerror}"})
+    if IN_DOCKER:
+        # In Docker la dashboard si riavvia da sola (restart: unless-stopped);
+        # gli altri container rileggono config.py al loro prossimo riavvio.
+        threading.Timer(2.0, lambda: os._exit(0)).start()
+        return jsonify({"ok": True, "msg": "Impostazioni salvate — per applicarle a tutto lo stack: docker compose restart"})
+    # un comando per servizio: la regola sudoers (install.sh) autorizza solo
+    # "systemctl restart <servizio>" singolarmente, senza password
+    for svc in ("alerts", "mqtt-telegram", "syslog-collector"):
+        subprocess.Popen(["sudo", "-n", "systemctl", "restart", svc])
     def _restart_self():
-        subprocess.Popen(["sudo", "systemctl", "restart", "flask-dashboard"])
+        subprocess.Popen(["sudo", "-n", "systemctl", "restart", "flask-dashboard"])
     threading.Timer(2.0, _restart_self).start()
     return jsonify({"ok": True, "msg": "Impostazioni salvate — servizi in riavvio tra 2s"})
 @app.route("/battery")
