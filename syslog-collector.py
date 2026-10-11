@@ -94,9 +94,18 @@ def init_db():
         message TEXT,
         UNIQUE(timestamp, callsign, message)
     )''')
+    # Pulizia dei pacchetti già salvati con posizione 0,0 (tracker senza fix GPS)
+    c.execute("""UPDATE packets SET lat=NULL, lon=NULL, distance=NULL
+        WHERE lat BETWEEN -1 AND 1 AND lon BETWEEN -1 AND 1""")
+    # Record giornalieri falsati da quei pacchetti: oltre 3000 km il LoRa non arriva.
+    # daily-stats.py ricalcola stanotte i giorni ancora presenti in packets.
+    c.execute("UPDATE daily_stats SET best_distance=NULL, best_callsign=NULL WHERE best_distance > 3000")
+    c.execute("UPDATE stations SET max_distance=NULL, max_distance_date=NULL WHERE max_distance > 3000")
     conn.commit()
     conn.close()
     print("DB inizializzato", flush=True)
+def posizione_nulla(lat, lon):
+    return lat is not None and lon is not None and abs(lat) < 1 and abs(lon) < 1
 def parse_syslog(line):
     try:
         if ' - - - ' not in line:
@@ -181,6 +190,9 @@ def parse_syslog(line):
             if m:
                 lon = int(m.group(1)) + float(m.group(2))/60
                 if m.group(3) == 'W': lon = -lon
+        # Tracker senza fix GPS: posizione 0,0 e distanza falsa (~5000 km) → scartate
+        if posizione_nulla(lat, lon):
+            lat = lon = distance = None
         comment = parts[11] if len(parts) > 11 else None
         voltage = None
         if comment:
