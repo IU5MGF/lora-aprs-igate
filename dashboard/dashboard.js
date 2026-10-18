@@ -65,9 +65,9 @@ async function loadPackets(){
       const isMeshRelay = p.path && p.path.startsWith('MESHCOM:') && p.path.includes('*');
       const isMeshDirect = p.path && p.path.startsWith('MESHCOM:') && !p.path.includes('*');
       const callDisplay = isMeshRelay
-        ? '<span style="color:#ff8c00;font-weight:bold">'+p.callsign+'</span>'
+        ? '<span class="call-meshdigi">'+p.callsign+'</span>'
         : isMeshDirect
-        ? '<span style="color:#bc8cff;font-weight:bold">'+p.callsign+'</span>'
+        ? '<span class="call-mesh">'+p.callsign+'</span>'
         : '<span class="callsign">'+p.callsign+'</span>';
       tr.innerHTML = '<td style="color:var(--text-dim)">'+p.time+'</td>'
         +'<td>'+callDisplay+'</td>'
@@ -75,7 +75,7 @@ async function loadPackets(){
         +'<td style="color:var(--text-dim)">'+snr_str+'</td>'
         +'<td>'+dist_str+'</td>'
         +'<td>'+pathBadge+'</td>'
-        +'<td style="color:var(--text-dim);font-size:10px">'+p.comment+'</td>';
+        +'<td style="color:var(--text-dim);font-size:12px">'+p.comment+'</td>';
       tbody.appendChild(tr);
     });
   }catch(e){console.error(e);}
@@ -113,7 +113,7 @@ async function loadTopStations(){
     const el = document.getElementById('top-stations');
     el.innerHTML = '';
     if(data.length === 0){
-      el.innerHTML = '<div style="padding:16px;font-family:var(--mono);font-size:11px;color:var(--text-dim)">Nessuna stazione</div>';
+      el.innerHTML = '<div style="padding:16px;font-family:var(--mono);font-size:13px;color:var(--text-dim)">Nessuna stazione</div>';
       return;
     }
     const color = stationMode === 'rf' ? 'var(--accent)' : 'var(--accent3)';
@@ -151,7 +151,7 @@ async function loadHourly(){
     const guideline = document.createElement('div');
     guideline.style.cssText = 'position:absolute;left:0;right:0;bottom:'+(avgH+20)+'px;border-top:1px dashed rgba(0,212,255,0.3);z-index:1;pointer-events:none';
     const guideLabel = document.createElement('span');
-    guideLabel.style.cssText = 'position:absolute;right:0;top:-14px;font-family:var(--mono);font-size:8px;color:rgba(0,212,255,0.5)';
+    guideLabel.style.cssText = 'position:absolute;right:0;top:-14px;font-family:var(--mono);font-size:11px;color:rgba(0,212,255,0.5)';
     guideLabel.textContent = 'avg '+Math.round(avg);
     guideline.appendChild(guideLabel);
     wrap.appendChild(guideline);
@@ -162,7 +162,7 @@ async function loadHourly(){
       div.className = 'chart-bar-col';
       div.style.cssText = 'flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end;position:relative;z-index:2';
       const h = cnt > 0 ? Math.max(cnt/max*140, 4) : 0;
-      div.innerHTML = '<div style="font-family:var(--mono);font-size:8px;color:var(--text-dim);text-align:center">'+(cnt > 0 ? cnt : '')+'</div>'
+      div.innerHTML = '<div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);text-align:center">'+(cnt > 0 ? cnt : '')+'</div>'
         +'<div class="chart-bar '+(isCurrent?'current':'')+'" style="height:'+h+'px"></div>'
         +'<span class="chart-label">'+hr+'</span>';
       wrap.appendChild(div);

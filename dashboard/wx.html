@@ -7,26 +7,26 @@
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-:root{--bg:#0a0c0f;--bg2:#0f1318;--bg3:#151a21;--border:#1e2a35;--accent:#00d4ff;--accent3:#00ff9f;--text:#c8d8e8;--text-dim:#8b949e;--mono:"Share Tech Mono",monospace;--sans:"Rajdhani",sans-serif}
+:root{--bg:#0a0c0f;--bg2:#0f1318;--bg3:#151a21;--border:#1e2a35;--accent:#00d4ff;--accent3:#00ff9f;--text:#c8d8e8;--text-dim:#a3afbb;--mono:"Share Tech Mono",monospace;--sans:"Rajdhani",sans-serif}
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh}
 header{background:var(--bg2);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
 .logo-text{font-family:var(--mono);font-size:18px;color:var(--accent);letter-spacing:2px}
-.logo-sub{font-size:11px;color:var(--text-dim);letter-spacing:3px;text-transform:uppercase}
+.logo-sub{font-size:13px;color:var(--text-dim);letter-spacing:3px;text-transform:uppercase}
 .main{padding:20px 24px;max-width:1200px;margin:0 auto}
 .stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
 @media(max-width:900px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
 .stat-card{background:var(--bg2);border:1px solid var(--border);border-top:2px solid var(--accent);padding:16px}
-.stat-label{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px}
+.stat-label{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px}
 .stat-value{font-family:var(--mono);font-size:28px;color:var(--accent);line-height:1}
-.stat-unit{font-size:11px;color:var(--text-dim);margin-top:4px}
+.stat-unit{font-size:13px;color:var(--text-dim);margin-top:4px}
 .panel{background:var(--bg2);border:1px solid var(--border);overflow:hidden;margin-bottom:16px}
 .panel-header{padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg3)}
-.panel-title{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--accent);font-family:var(--mono)}
+.panel-title{font-size:13px;letter-spacing:3px;text-transform:uppercase;color:var(--accent);font-family:var(--mono)}
 .chart-wrap{padding:16px;height:250px}
-.back-btn{font-family:var(--mono);font-size:11px;color:var(--accent);text-decoration:none;border:1px solid var(--border);padding:6px 14px;letter-spacing:2px}
-[data-theme="light"]{--bg:#f0f4f8;--bg2:#e1ecf7;--bg3:#e8eef4;--border:#d0dce8;--accent:#0066aa;--accent3:#007744;--text:#1a2a3a;--text-dim:#6a8090}
-.nav-dropdown{position:relative;display:inline-block}.nav-btn{font-family:"Share Tech Mono",monospace;font-size:11px;color:#00d4ff;border:1px solid #1e2a35;padding:6px 14px;letter-spacing:2px;background:transparent;cursor:pointer;display:flex;align-items:center;gap:8px}.nav-btn:hover{border-color:#00d4ff}.dropdown-menu{display:none;position:absolute;right:0;top:100%;margin-top:4px;background:#0f1318;border:1px solid #1e2a35;min-width:160px;z-index:200}.nav-dropdown.open .dropdown-menu{display:block}.dropdown-item{display:block;font-family:"Share Tech Mono",monospace;font-size:11px;color:#00d4ff;text-decoration:none;padding:8px 16px;letter-spacing:2px;white-space:nowrap;border-bottom:1px solid #1e2a35}.dd-icon{display:inline-block;width:20px;text-align:center;flex-shrink:0}.dropdown-item:last-child{border-bottom:none}.dropdown-item:hover{background:rgba(0,212,255,0.05)}
+.back-btn{font-family:var(--mono);font-size:13px;color:var(--accent);text-decoration:none;border:1px solid var(--border);padding:6px 14px;letter-spacing:2px}
+[data-theme="light"]{--bg:#f0f4f8;--bg2:#e1ecf7;--bg3:#e8eef4;--border:#d0dce8;--accent:#005085;--accent3:#005933;--text:#1a2a3a;--text-dim:#3d4f5f}
+.nav-dropdown{position:relative;display:inline-block}.nav-btn{font-family:"Share Tech Mono",monospace;font-size:13px;color:#00d4ff;border:1px solid #1e2a35;padding:6px 14px;letter-spacing:2px;background:transparent;cursor:pointer;display:flex;align-items:center;gap:8px}.nav-btn:hover{border-color:#00d4ff}.dropdown-menu{display:none;position:absolute;right:0;top:100%;margin-top:4px;background:#0f1318;border:1px solid #1e2a35;min-width:160px;z-index:200}.nav-dropdown.open .dropdown-menu{display:block}.dropdown-item{display:block;font-family:"Share Tech Mono",monospace;font-size:13px;color:#00d4ff;text-decoration:none;padding:8px 16px;letter-spacing:2px;white-space:nowrap;border-bottom:1px solid #1e2a35}.dd-icon{display:inline-block;width:20px;text-align:center;flex-shrink:0}.dropdown-item:last-child{border-bottom:none}.dropdown-item:hover{background:rgba(0,212,255,0.05)}
 </style>
 </head>
 <body>

@@ -6,36 +6,36 @@
 <title>{{ callsign }} — Impostazioni</title>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0d1117;--bg2:#0f1318;--text:#c9d1d9;--text-dim:#8b949e;--accent:#00d4ff;--accent2:#ff4444;--accent3:#3fb950;--border:#1e2a35;--mono:'Share Tech Mono',monospace}
+:root{--bg:#0d1117;--bg2:#0f1318;--text:#c9d1d9;--text-dim:#a3afbb;--accent:#00d4ff;--accent2:#ff4444;--accent3:#3fb950;--border:#1e2a35;--mono:'Share Tech Mono',monospace}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh}
 header{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
 .logo-text{font-size:14px;font-weight:bold;color:var(--accent);letter-spacing:2px}
-.logo-sub{font-size:9px;color:var(--text-dim);letter-spacing:1px}
+.logo-sub{font-size:11px;color:var(--text-dim);letter-spacing:1px}
 .nav-dropdown{position:relative}
-.nav-btn{font-family:var(--mono);font-size:11px;padding:6px 14px;border:1px solid var(--border);background:transparent;color:var(--accent);cursor:pointer;letter-spacing:1px}
+.nav-btn{font-family:var(--mono);font-size:13px;padding:6px 14px;border:1px solid var(--border);background:transparent;color:var(--accent);cursor:pointer;letter-spacing:1px}
 .dropdown-menu{display:none;position:absolute;right:0;top:100%;background:var(--bg2);border:1px solid var(--border);z-index:1000;min-width:180px}
 .nav-dropdown.open .dropdown-menu{display:block}
-.dropdown-item{display:block;padding:8px 16px;font-family:var(--mono);font-size:11px;color:var(--text);text-decoration:none;letter-spacing:1px}.dd-icon{display:inline-block;width:20px;text-align:center;flex-shrink:0}
+.dropdown-item{display:block;padding:8px 16px;font-family:var(--mono);font-size:13px;color:var(--text);text-decoration:none;letter-spacing:1px}.dd-icon{display:inline-block;width:20px;text-align:center;flex-shrink:0}
 .dropdown-item:hover{background:var(--border);color:var(--accent)}
 .main{padding:20px;max-width:800px;margin:0 auto}
 .panel{background:var(--bg2);border:1px solid var(--border);border-radius:4px;margin-bottom:16px}
 .panel-header{padding:12px 16px;border-bottom:1px solid var(--border)}
-.panel-title{font-size:11px;letter-spacing:2px;color:var(--text-dim)}
+.panel-title{font-size:13px;letter-spacing:2px;color:var(--text-dim)}
 .field{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
 .field:last-child{border-bottom:none}
-.field label{font-size:11px;color:var(--text-dim);letter-spacing:1px;width:180px;flex-shrink:0}
-.field input{font-family:var(--mono);font-size:12px;background:var(--bg);color:var(--text);border:1px solid var(--border);padding:6px 10px;outline:none;flex:1}
+.field label{font-size:13px;color:var(--text-dim);letter-spacing:1px;width:180px;flex-shrink:0}
+.field input{font-family:var(--mono);font-size:14px;background:var(--bg);color:var(--text);border:1px solid var(--border);padding:6px 10px;outline:none;flex:1}
 .field input:focus{border-color:var(--accent)}
 .actions{padding:16px;display:flex;gap:12px;align-items:center}
-.btn-save{font-family:var(--mono);font-size:11px;padding:8px 20px;background:var(--accent3);color:#000;border:none;cursor:pointer;letter-spacing:1px}
+.btn-save{font-family:var(--mono);font-size:13px;padding:8px 20px;background:var(--accent3);color:#000;border:none;cursor:pointer;letter-spacing:1px}
 .btn-save:disabled{opacity:0.5;cursor:not-allowed}
-.msg{font-size:11px}
-[data-theme="light"]{--bg:#f0f4f8;--bg2:#ffffff;--bg3:#e8eef4;--border:#d0dce8;--text:#1a2530;--text-dim:#5a6c7d}
+.msg{font-size:13px}
+[data-theme="light"]{--bg:#f0f4f8;--bg2:#ffffff;--bg3:#e8eef4;--border:#d0dce8;--text:#1a2530;--text-dim:#3d4f5f}
 [data-theme="light"] .dropdown-menu{background:#e1ecf7;border-color:#d0dce8}
-[data-theme="light"] .dropdown-item{color:#0066aa;border-bottom-color:#d0dce8}
+[data-theme="light"] .dropdown-item{color:#005085;border-bottom-color:#d0dce8}
 [data-theme="light"] .dropdown-item:hover{background:rgba(0,102,170,0.05)}
-[data-theme="light"] .nav-btn{color:#0066aa;border-color:#d0dce8}
+[data-theme="light"] .nav-btn{color:#005085;border-color:#d0dce8}
 </style>
 </head>
 <body>
@@ -44,7 +44,7 @@ header{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 
     <div class="logo-text">{{ callsign }}</div>
     <div class="logo-sub">IMPOSTAZIONI</div>
   </div>
-  <button id="theme-btn" onclick="toggleTheme()" style="font-family:var(--mono);font-size:11px;padding:6px 14px;background:transparent;color:var(--accent);border:1px solid var(--border);cursor:pointer;letter-spacing:1px;margin-right:8px">&#9728; TEMA</button>
+  <button id="theme-btn" onclick="toggleTheme()" style="font-family:var(--mono);font-size:13px;padding:6px 14px;background:transparent;color:var(--accent);border:1px solid var(--border);cursor:pointer;letter-spacing:1px;margin-right:8px">&#9728; TEMA</button>
   <div class="nav-dropdown" id="nav">
     <button class="nav-btn" onclick="document.getElementById('nav').classList.toggle('open')">MENU ▼</button>
     <div class="dropdown-menu">
@@ -56,21 +56,21 @@ header{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 
     <div class="panel-header"><span class="panel-title">&#9881; CONFIGURAZIONE IGATE</span></div>
     <div class="field"><label>Callsign (es. IU5MGF-10)</label><input id="CALLSIGN" type="text"></div><div class="field"><label>Nome visualizzato</label><input id="DISPLAY_NAME" type="text"></div>
     <div class="field"><label>IP iGate</label><input id="IGATE_IP" type="text"></div>
-    <div style="grid-column:1/-1;font-size:11px;color:var(--text-dim);margin-bottom:-8px">Coordinate del punto in cui e' installato l'iGate/Digipeater — servono a calcolare la copertura RF (distanze, poligono, heatmap)</div>
+    <div style="grid-column:1/-1;font-size:13px;color:var(--text-dim);margin-bottom:-8px">Coordinate del punto in cui e' installato l'iGate/Digipeater — servono a calcolare la copertura RF (distanze, poligono, heatmap)</div>
     <div class="field"><label>Latitudine</label><input id="LATITUDE" type="text"></div>
     <div class="field"><label>Longitudine</label><input id="LONGITUDE" type="text"></div>
   </div>
   <div class="panel" id="meshcom-panel">
     <div class="panel-header"><span class="panel-title">&#128225; MESHCOM</span></div>
     <div class="field"><label>IP nodo MeshCom</label><input id="MESHCOM_IP" type="text"></div>
-    <div style="grid-column:1/-1;font-size:11px;color:var(--text-dim);margin-bottom:-8px">Posizione del nodo sulla mappa quando non trasmette la sua (0 = non mostrarlo)</div>
+    <div style="grid-column:1/-1;font-size:13px;color:var(--text-dim);margin-bottom:-8px">Posizione del nodo sulla mappa quando non trasmette la sua (0 = non mostrarlo)</div>
     <div class="field"><label>Latitudine nodo</label><input id="MESHCOM_LAT" type="text"></div>
     <div class="field"><label>Longitudine nodo</label><input id="MESHCOM_LON" type="text"></div>
   </div>
   <div class="panel">
     <div class="panel-header"><span class="panel-title">&#128274; SALVA</span></div>
     <div class="actions">
-      <input id="pw" type="password" placeholder="Password..." style="font-family:var(--mono);font-size:11px;background:var(--bg);color:var(--text);border:1px solid var(--border);padding:6px 10px;outline:none;width:160px">
+      <input id="pw" type="password" placeholder="Password..." style="font-family:var(--mono);font-size:13px;background:var(--bg);color:var(--text);border:1px solid var(--border);padding:6px 10px;outline:none;width:160px">
       <button class="btn-save" id="btn-save" onclick="save()">&#10003; SALVA E RIAVVIA</button>
       <span class="msg" id="msg"></span>
     </div>

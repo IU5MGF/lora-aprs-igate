@@ -7,31 +7,31 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0d1117;--bg2:#0f1318;--text:#c9d1d9;--text-dim:#8b949e;--accent:#00d4ff;--border:#1e2a35;--mono:'Share Tech Mono',monospace}
+:root{--bg:#0d1117;--bg2:#0f1318;--text:#c9d1d9;--text-dim:#a3afbb;--accent:#00d4ff;--border:#1e2a35;--mono:'Share Tech Mono',monospace}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh}
 header{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
 .logo-text{font-size:14px;font-weight:bold;color:var(--accent);letter-spacing:2px}
-.logo-sub{font-size:9px;color:var(--text-dim);letter-spacing:1px}
+.logo-sub{font-size:11px;color:var(--text-dim);letter-spacing:1px}
 .nav-dropdown{position:relative}
-.nav-btn{font-family:var(--mono);font-size:11px;padding:6px 14px;border:1px solid var(--border);background:transparent;color:var(--accent);cursor:pointer;letter-spacing:1px}
+.nav-btn{font-family:var(--mono);font-size:13px;padding:6px 14px;border:1px solid var(--border);background:transparent;color:var(--accent);cursor:pointer;letter-spacing:1px}
 .dropdown-menu{display:none;position:absolute;right:0;top:100%;background:var(--bg2);border:1px solid var(--border);z-index:1000;min-width:180px}
 .nav-dropdown.open .dropdown-menu{display:block}
-.dropdown-item{display:block;padding:8px 16px;font-family:var(--mono);font-size:11px;color:var(--text);text-decoration:none;letter-spacing:1px}.dd-icon{display:inline-block;width:20px;text-align:center;flex-shrink:0}
+.dropdown-item{display:block;padding:8px 16px;font-family:var(--mono);font-size:13px;color:var(--text);text-decoration:none;letter-spacing:1px}.dd-icon{display:inline-block;width:20px;text-align:center;flex-shrink:0}
 .dropdown-item:hover{background:var(--border);color:var(--accent)}
 .main{padding:20px}
 .panel{background:var(--bg2);border:1px solid var(--border);border-radius:4px}
 .panel-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
-.panel-title{font-size:11px;letter-spacing:2px;color:var(--text-dim)}
-.stats{display:flex;gap:16px;font-size:11px;color:var(--text-dim)}
+.panel-title{font-size:13px;letter-spacing:2px;color:var(--text-dim)}
+.stats{display:flex;gap:16px;font-size:13px;color:var(--text-dim)}
 .stats span{color:var(--accent)}
 .chart-container{padding:16px;height:400px}
-select{font-family:var(--mono);font-size:11px;background:var(--bg);color:var(--text);border:1px solid var(--border);padding:4px 8px}
-[data-theme="light"]{--bg:#f0f4f8;--bg2:#ffffff;--bg3:#e8eef4;--border:#d0dce8;--text:#1a2530;--text-dim:#5a6c7d}
+select{font-family:var(--mono);font-size:13px;background:var(--bg);color:var(--text);border:1px solid var(--border);padding:4px 8px}
+[data-theme="light"]{--bg:#f0f4f8;--bg2:#ffffff;--bg3:#e8eef4;--border:#d0dce8;--text:#1a2530;--text-dim:#3d4f5f}
 [data-theme="light"] .dropdown-menu{background:#e1ecf7;border-color:#d0dce8}
-[data-theme="light"] .dropdown-item{color:#0066aa;border-bottom-color:#d0dce8}
+[data-theme="light"] .dropdown-item{color:#005085;border-bottom-color:#d0dce8}
 [data-theme="light"] .dropdown-item:hover{background:rgba(0,102,170,0.05)}
-[data-theme="light"] .nav-btn{color:#0066aa;border-color:#d0dce8}
+[data-theme="light"] .nav-btn{color:#005085;border-color:#d0dce8}
 </style>
 </head>
 <body>

@@ -15,23 +15,23 @@
 body{background:#0a0c0f;font-family:"Rajdhani",sans-serif}
 header{background:#0f1318;border-bottom:1px solid #1e2a35;padding:12px 24px;display:flex;align-items:center;justify-content:space-between}
 .logo-text{font-family:"Share Tech Mono",monospace;font-size:18px;color:#00d4ff;letter-spacing:2px}
-.logo-sub{font-size:11px;color:#4a6070;letter-spacing:3px;text-transform:uppercase}
-.back-btn{font-family:"Share Tech Mono",monospace;font-size:11px;color:#00d4ff;text-decoration:none;border:1px solid #1e2a35;padding:6px 14px;letter-spacing:2px}
+.logo-sub{font-size:13px;color:#a3afbb;letter-spacing:3px;text-transform:uppercase}
+.back-btn{font-family:"Share Tech Mono",monospace;font-size:13px;color:#00d4ff;text-decoration:none;border:1px solid #1e2a35;padding:6px 14px;letter-spacing:2px}
 #map{height:calc(100vh - 90px);width:100%}
-.leaflet-popup-content-wrapper{background:#0f1318;border:1px solid #00d4ff;border-radius:2px;color:#c8d8e8;font-family:"Share Tech Mono",monospace;font-size:11px}
+.leaflet-popup-content-wrapper{background:#0f1318;border:1px solid #00d4ff;border-radius:2px;color:#c8d8e8;font-family:"Share Tech Mono",monospace;font-size:13px}
 .leaflet-popup-tip{background:#0f1318}
-.stat-bar{display:flex;gap:16px;padding:8px 24px;background:#0f1318;border-bottom:1px solid #1e2a35;font-family:"Share Tech Mono",monospace;font-size:11px;color:#4a6070;flex-wrap:wrap;align-items:center}
-.toggle-btn{font-family:"Share Tech Mono",monospace;font-size:10px;padding:4px 10px;border:1px solid #1e2a35;background:transparent;color:#4a6070;cursor:pointer;border-radius:3px;letter-spacing:1px}
+.stat-bar{display:flex;gap:16px;padding:8px 24px;background:#0f1318;border-bottom:1px solid #1e2a35;font-family:"Share Tech Mono",monospace;font-size:13px;color:#a3afbb;flex-wrap:wrap;align-items:center}
+.toggle-btn{font-family:"Share Tech Mono",monospace;font-size:12px;padding:4px 10px;border:1px solid #1e2a35;background:transparent;color:#a3afbb;cursor:pointer;border-radius:3px;letter-spacing:1px}
 .toggle-btn.active{border-color:#00d4ff;color:#00d4ff;background:rgba(0,212,255,0.1)}
-<style>.nav-dropdown{position:relative;display:inline-block}.nav-btn{font-family:"Share Tech Mono",monospace;font-size:11px;color:#00d4ff;text-decoration:none;border:1px solid #1e2a35;padding:6px 14px;letter-spacing:2px;background:transparent;cursor:pointer;display:flex;align-items:center;gap:8px}.nav-btn:hover{border-color:#00d4ff}.nav-arrow{font-size:8px;transition:transform 0.2s}.nav-dropdown.open .nav-arrow{transform:rotate(180deg)}.dropdown-menu{display:none;position:absolute;right:0;top:100%;margin-top:4px;background:#0f1318;border:1px solid #1e2a35;min-width:160px;z-index:10000}.nav-dropdown.open .dropdown-menu{display:block}.dropdown-item{display:block;font-family:"Share Tech Mono",monospace;font-size:11px;color:#00d4ff;text-decoration:none;padding:8px 16px;letter-spacing:2px;white-space:nowrap;border-bottom:1px solid #1e2a35}.dropdown-item:last-child{border-bottom:none}.dropdown-item:hover{background:rgba(0,212,255,0.05)}.dropdown-item.active{color:#00ff9f}
+<style>.nav-dropdown{position:relative;display:inline-block}.nav-btn{font-family:"Share Tech Mono",monospace;font-size:13px;color:#00d4ff;text-decoration:none;border:1px solid #1e2a35;padding:6px 14px;letter-spacing:2px;background:transparent;cursor:pointer;display:flex;align-items:center;gap:8px}.nav-btn:hover{border-color:#00d4ff}.nav-arrow{font-size:8px;transition:transform 0.2s}.nav-dropdown.open .nav-arrow{transform:rotate(180deg)}.dropdown-menu{display:none;position:absolute;right:0;top:100%;margin-top:4px;background:#0f1318;border:1px solid #1e2a35;min-width:160px;z-index:10000}.nav-dropdown.open .dropdown-menu{display:block}.dropdown-item{display:block;font-family:"Share Tech Mono",monospace;font-size:13px;color:#00d4ff;text-decoration:none;padding:8px 16px;letter-spacing:2px;white-space:nowrap;border-bottom:1px solid #1e2a35}.dropdown-item:last-child{border-bottom:none}.dropdown-item:hover{background:rgba(0,212,255,0.05)}.dropdown-item.active{color:#00ff9f}
 [data-theme="light"]{
 --bg:#f0f4f8;--bg2:#e1ecf7;--bg3:#e8eef4;--border:#d0dce8;
---accent:#0066aa;--accent2:#cc2200;--accent3:#007744;
---text:#1a2a3a;--text-dim:#6a8090;}
+--accent:#005085;--accent2:#991900;--accent3:#005933;
+--text:#1a2a3a;--text-dim:#3d4f5f;}
 [data-theme="light"] body::before{background:none}
 [data-theme="light"] .stat-card{box-shadow:0 1px 4px rgba(0,0,0,0.1)}
 [data-theme="light"] .panel{box-shadow:0 1px 4px rgba(0,0,0,0.1)}
-[data-theme="light"] .dropdown-menu{background:#e1ecf7;border-color:#d0dce8}[data-theme="light"] .dropdown-item{color:#0066aa;border-bottom-color:#d0dce8}[data-theme="light"] .dropdown-item:hover{background:rgba(0,102,170,0.05)}[data-theme="light"] .nav-btn{color:#0066aa;border-color:#d0dce8}</style></style>
+[data-theme="light"] .dropdown-menu{background:#e1ecf7;border-color:#d0dce8}[data-theme="light"] .dropdown-item{color:#005085;border-bottom-color:#d0dce8}[data-theme="light"] .dropdown-item:hover{background:rgba(0,102,170,0.05)}[data-theme="light"] .nav-btn{color:#005085;border-color:#d0dce8}</style></style>
 </head>
 <body>
 <header>
@@ -53,13 +53,13 @@ header{background:#0f1318;border-bottom:1px solid #1e2a35;padding:12px 24px;disp
   <span style="color:#ff8c00">&#9679; Mesh Digi</span>
   <button class="toggle-btn active" id="rep-btn" onclick="toggleFilter('rep')">D-STAR/EL ON</button>
   <div style="display:flex;gap:4px;align-items:center;margin-left:8px">
-    <input id="search-call" type="text" placeholder="Cerca callsign..." style="font-family:var(--mono);font-size:10px;background:var(--bg);color:#00d4ff;border:1px solid #00d4ff;padding:3px 8px;outline:none;width:130px" onkeydown="if(event.key==='Enter')searchCallsign()">
-    <button onclick="searchCallsign()" style="font-family:var(--mono);font-size:10px;padding:3px 8px;background:transparent;color:#00d4ff;border:1px solid #00d4ff;cursor:pointer">CERCA</button>
-    <button onclick="clearSearch()" style="font-family:var(--mono);font-size:10px;padding:3px 8px;background:transparent;color:#00d4ff;border:1px solid var(--border);cursor:pointer">✕</button>
+    <input id="search-call" type="text" placeholder="Cerca callsign..." style="font-family:var(--mono);font-size:12px;background:var(--bg);color:#00d4ff;border:1px solid #00d4ff;padding:3px 8px;outline:none;width:130px" onkeydown="if(event.key==='Enter')searchCallsign()">
+    <button onclick="searchCallsign()" style="font-family:var(--mono);font-size:12px;padding:3px 8px;background:transparent;color:#00d4ff;border:1px solid #00d4ff;cursor:pointer">CERCA</button>
+    <button onclick="clearSearch()" style="font-family:var(--mono);font-size:12px;padding:3px 8px;background:transparent;color:#00d4ff;border:1px solid var(--border);cursor:pointer">✕</button>
   </div>
   <button class="toggle-btn" id="coverage-btn" onclick="toggleCoverage()">COVERAGE OFF</button>
   <button class="toggle-btn" id="heatmap-btn" onclick="toggleHeatmap()">HEATMAP OFF</button>
-  <select id="time-range" onchange="loadMap()" style="font-family:'Share Tech Mono',monospace;font-size:10px;padding:4px 8px;border:1px solid #1e2a35;background:#0f1318;color:#00d4ff;border-radius:3px;cursor:pointer">
+  <select id="time-range" onchange="loadMap()" style="font-family:'Share Tech Mono',monospace;font-size:12px;padding:4px 8px;border:1px solid #1e2a35;background:#0f1318;color:#00d4ff;border-radius:3px;cursor:pointer">
     <option value="15">15 min</option>
     <option value="30">30 min</option>
     <option value="45">45 min</option>
@@ -91,7 +91,7 @@ function addTwoHours(ts) {
 }
 
 function makeLabel(callsign, color) {
-  return "<div style='position:absolute;top:-16px;left:14px;color:" + color + ";font-size:9px;font-weight:bold;white-space:nowrap;background:rgba(0,0,0,0.6);padding:1px 3px;border-radius:2px'>" + callsign + "</div>";
+  return "<div style='position:absolute;top:-16px;left:14px;color:" + color + ";font-size:11px;font-weight:bold;white-space:nowrap;background:rgba(0,0,0,0.6);padding:1px 3px;border-radius:2px'>" + callsign + "</div>";
 }
 
 let markers = [];
@@ -145,7 +145,7 @@ async function loadMap() {
     window.ownCluster = L.markerClusterGroup({
       iconCreateFunction: function(cluster) {
         return L.divIcon({className: "", html:
-          "<div style='background:#ff8000;color:#000;width:28px;height:28px;border-radius:50%;border:2px solid white;box-shadow:0 0 8px #ff8000;display:flex;align-items:center;justify-content:center;font-family:monospace;font-size:11px;font-weight:bold'>"
+          "<div style='background:#ff8000;color:#000;width:28px;height:28px;border-radius:50%;border:2px solid white;box-shadow:0 0 8px #ff8000;display:flex;align-items:center;justify-content:center;font-family:monospace;font-size:13px;font-weight:bold'>"
           + cluster.getChildCount() + "</div>", iconSize: [28, 28], iconAnchor: [14, 14]});
       },
       maxClusterRadius: 40, spiderfyOnMaxZoom: true, showCoverageOnHover: false,
