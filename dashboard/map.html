@@ -149,8 +149,10 @@ async function loadMap() {
           + cluster.getChildCount() + "</div>", iconSize: [28, 28], iconAnchor: [14, 14]});
       },
       maxClusterRadius: 40, spiderfyOnMaxZoom: true, showCoverageOnHover: false,
-      disableClusteringAtZoom: 13, zoomToBoundsOnClick: false
+      zoomToBoundsOnClick: false
     });
+    // iGate e MeshCom di casa sono a pochi metri: al clic il gruppo si apre a ventaglio
+    window.ownCluster.on('clusterclick', function(e) { e.layer.spiderfy(); });
     if(window.stationCluster) map.removeLayer(window.stationCluster);
     window.stationCluster = L.layerGroup();
     data.forEach(function(s) {

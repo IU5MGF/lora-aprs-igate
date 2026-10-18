@@ -203,8 +203,17 @@ def map_data():
             AND replace(timestamp,'T',' ') >= datetime('now', '-' || ? || ' minutes')
             GROUP BY callsign)
     """, (minutes, minutes)).fetchall()
+    # L'iGate si vede sempre, nella posizione di config: i suoi beacon TX non hanno
+    # lat/lon e i pacchetti RX esistono solo quando un altro digi lo ripete
+    last_tx = db.execute("""SELECT timestamp, voltage FROM packets WHERE msg_type='TX'
+        ORDER BY id DESC LIMIT 1""").fetchone()
     db.close()
-    result = [{"callsign": r["callsign"], "lat": r["lat"], "lon": r["lon"],
+    own = {
+        "callsign": CALLSIGN, "lat": LATITUDE, "lon": LONGITUDE, "rssi": "-", "distance": 0,
+        "type": "own", "path": "", "voltage": last_tx["voltage"] if last_tx else None,
+        "comment": "", "symbol": None, "last_ts": last_tx["timestamp"] if last_tx else None}
+    rows = [r for r in rows if r["callsign"] != CALLSIGN]
+    result = [own] + [{"callsign": r["callsign"], "lat": r["lat"], "lon": r["lon"],
         "rssi": r["rssi"], "distance": r["distance"],
         "type": 'meshcom' if r['path'] == 'MESHCOM:POS' else ('meshcom_digi' if r['path'] and r['path'].startswith('MESHCOM:POS') else ('digi' if r['path'] and '*' in r['path'] else 'rf')),
         "path": r["path"] or "",
@@ -212,6 +221,10 @@ def map_data():
         "comment": r["comment"] or "",
         "symbol": r["symbol"] if "symbol" in r.keys() else None,
         "last_ts": r["timestamp"]} for r in rows]
+    # Il nodo MeshCom di casa sta nel gruppo arancio dei nodi locali, insieme all'iGate
+    for s in result:
+        if MESHCOM_CALLSIGN and s["callsign"] == MESHCOM_CALLSIGN:
+            s["type"] = "own"
     return jsonify(result)
 
 @app.route("/api/voltage")
