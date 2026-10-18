@@ -86,6 +86,8 @@ for line in open('$CONFIG_PATH'):
     DEF_DB_RETENTION=$(_read_cfg_bare "DB_RETENTION_DAYS")
     DEF_MESHCOM_IP=$(_read_cfg "MESHCOM_IP")
     DEF_MESHCOM_CALLSIGN=$(_read_cfg "MESHCOM_CALLSIGN")
+    DEF_MESHCOM_LAT=$(_read_cfg_bare "MESHCOM_LAT")
+    DEF_MESHCOM_LON=$(_read_cfg_bare "MESHCOM_LON")
 else
     DEF_CALLSIGN=""; DEF_DISPLAY_NAME=""; DEF_IGATE_IP="192.168.2.10"; DEF_REBOOT_PW="raspberry"
     DEF_BOT_NOTIFY=""; DEF_CHAT_NOTIFY=""; DEF_BOT_ALERT=""; DEF_CHAT_ALERT=""
@@ -166,9 +168,16 @@ HAS_MESHCOM=$(ask_yn "Hai un nodo MeshCom da integrare?" "n")
 if [ "$HAS_MESHCOM" = "True" ]; then
     MESHCOM_IP=$(ask "IP locale nodo MeshCom" "${DEF_MESHCOM_IP:-192.168.2.12}")
     MESHCOM_CALLSIGN=$(ask "Callsign nodo MeshCom" "${DEF_MESHCOM_CALLSIGN:-}")
+    # Posizione del nodo sulla mappa quando non trasmette la sua (pacchetti POS)
+    _ml="${DEF_MESHCOM_LAT:-0}"; [ "$_ml" = "0" ] && _ml="$LATITUDE"
+    _mo="${DEF_MESHCOM_LON:-0}"; [ "$_mo" = "0" ] && _mo="$LONGITUDE"
+    MESHCOM_LAT=$(ask "Latitudine nodo MeshCom" "$_ml")
+    MESHCOM_LON=$(ask "Longitudine nodo MeshCom" "$_mo")
 else
     MESHCOM_IP=""
     MESHCOM_CALLSIGN=""
+    MESHCOM_LAT=0
+    MESHCOM_LON=0
 fi
 
 echo ""
@@ -225,6 +234,8 @@ MQTT_PORT       = 1883
 HAS_MESHCOM     = ${HAS_MESHCOM}
 MESHCOM_IP      = "${MESHCOM_IP}"
 MESHCOM_CALLSIGN = "${MESHCOM_CALLSIGN}"
+MESHCOM_LAT     = ${MESHCOM_LAT}
+MESHCOM_LON     = ${MESHCOM_LON}
 CONFEOF
 
 echo -e "${GREEN}config.py scritto in ${CONFIG_PATH}${NC}"

@@ -63,6 +63,9 @@ header{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 
   <div class="panel" id="meshcom-panel">
     <div class="panel-header"><span class="panel-title">&#128225; MESHCOM</span></div>
     <div class="field"><label>IP nodo MeshCom</label><input id="MESHCOM_IP" type="text"></div>
+    <div style="grid-column:1/-1;font-size:11px;color:var(--text-dim);margin-bottom:-8px">Posizione del nodo sulla mappa quando non trasmette la sua (0 = non mostrarlo)</div>
+    <div class="field"><label>Latitudine nodo</label><input id="MESHCOM_LAT" type="text"></div>
+    <div class="field"><label>Longitudine nodo</label><input id="MESHCOM_LON" type="text"></div>
   </div>
   <div class="panel">
     <div class="panel-header"><span class="panel-title">&#128274; SALVA</span></div>
@@ -82,6 +85,8 @@ async function load() {
   document.getElementById('LATITUDE').value = d.LATITUDE || '';
   document.getElementById('LONGITUDE').value = d.LONGITUDE || '';
   document.getElementById('MESHCOM_IP').value = d.MESHCOM_IP || '';
+  document.getElementById('MESHCOM_LAT').value = d.MESHCOM_LAT || 0;
+  document.getElementById('MESHCOM_LON').value = d.MESHCOM_LON || 0;
   if (!d.HAS_MESHCOM) document.getElementById('meshcom-panel').style.display = 'none';
 }
 async function save() {
@@ -98,6 +103,10 @@ async function save() {
     LONGITUDE: parseFloat(document.getElementById('LONGITUDE').value),
     MESHCOM_IP: document.getElementById('MESHCOM_IP').value,
   };
+  if (document.getElementById('meshcom-panel').style.display !== 'none') {
+    body.MESHCOM_LAT = parseFloat(document.getElementById('MESHCOM_LAT').value) || 0;
+    body.MESHCOM_LON = parseFloat(document.getElementById('MESHCOM_LON').value) || 0;
+  }
   const r = await fetch('/api/settings', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
   const d = await r.json();
   document.getElementById('msg').textContent = d.msg;

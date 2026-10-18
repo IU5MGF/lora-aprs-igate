@@ -149,14 +149,12 @@ async function loadMap() {
           + cluster.getChildCount() + "</div>", iconSize: [28, 28], iconAnchor: [14, 14]});
       },
       maxClusterRadius: 40, spiderfyOnMaxZoom: true, showCoverageOnHover: false,
-      zoomToBoundsOnClick: false
+      disableClusteringAtZoom: 13, zoomToBoundsOnClick: false
     });
-    // iGate e MeshCom di casa sono a pochi metri: al clic il gruppo si apre a ventaglio
-    window.ownCluster.on('clusterclick', function(e) { e.layer.spiderfy(); });
     if(window.stationCluster) map.removeLayer(window.stationCluster);
     window.stationCluster = L.layerGroup();
     data.forEach(function(s) {
-      const color = s.type === "rf" ? "#00ff9f" : s.type === "meshcom" ? "#bc8cff" : s.type === "meshcom_digi" ? "#ff8c00" : s.type === "own" ? "#ff8000" : "#ffd700";
+      const color = (s.type === "rf" || s.type === "igate") ? "#00ff9f" : s.type === "meshcom" ? "#bc8cff" : s.type === "meshcom_digi" ? "#ff8c00" : s.type === "own" ? "#ff8000" : "#ffd700";
       const size = s.type === "own" ? 14 : 10;
       const ora = addTwoHours(s.last_ts);
       // Determina se è un tracker mobile (suffisso numerico diverso da -10/-11/-12/-13)
@@ -209,7 +207,7 @@ async function loadMap() {
       }
       marker.bindPopup(
         "<b>" + s.callsign + "</b><br>"
-        + "Tipo: " + (s.type === "rf" ? "RF diretta" : s.type === "meshcom" ? "MeshCom diretto" : s.type === "meshcom_digi" ? "MeshCom via relay" : s.type === "own" ? "Nodo locale" : "Digipeated") + "<br>"
+        + "Tipo: " + (s.type === "rf" ? "RF diretta" : s.type === "meshcom" ? "MeshCom diretto" : s.type === "meshcom_digi" ? "MeshCom via relay" : s.type === "own" ? "Nodo locale" : s.type === "igate" ? "iGate (questa stazione)" : "Digipeated") + "<br>"
         + "RSSI: " + s.rssi + " dBm<br>"
         + "Distanza: " + s.distance + " km<br>"
         + "Ultimo: " + ora

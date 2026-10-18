@@ -63,6 +63,8 @@ add_key DISPLAY_NAME     "DISPLAY_NAME = \"${CALLSIGN_CFG}\""
 add_key HAS_MESHCOM      "HAS_MESHCOM = False"
 add_key MESHCOM_IP       'MESHCOM_IP = ""'
 add_key MESHCOM_CALLSIGN 'MESHCOM_CALLSIGN = ""'
+add_key MESHCOM_LAT      'MESHCOM_LAT = 0'
+add_key MESHCOM_LON      'MESHCOM_LON = 0'
 # permessi per la pagina /settings (come install.sh): config.py scrivibile e
 # riavvio dei servizi senza password
 USR=$(logname 2>/dev/null || whoami)

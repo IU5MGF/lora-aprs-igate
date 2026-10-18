@@ -21,6 +21,10 @@ except ImportError:
     HAS_MESHCOM = False
     MESHCOM_CALLSIGN = ""
 try:
+    from config import MESHCOM_LAT, MESHCOM_LON
+except ImportError:
+    MESHCOM_LAT = MESHCOM_LON = 0
+try:
     from config import DISPLAY_NAME
 except ImportError:
     DISPLAY_NAME = CALLSIGN
@@ -207,13 +211,24 @@ def map_data():
     # lat/lon e i pacchetti RX esistono solo quando un altro digi lo ripete
     last_tx = db.execute("""SELECT timestamp, voltage FROM packets WHERE msg_type='TX'
         ORDER BY id DESC LIMIT 1""").fetchone()
-    db.close()
-    own = {
+    igate = {
         "callsign": CALLSIGN, "lat": LATITUDE, "lon": LONGITUDE, "rssi": "-", "distance": 0,
-        "type": "own", "path": "", "voltage": last_tx["voltage"] if last_tx else None,
+        "type": "igate", "path": "", "voltage": last_tx["voltage"] if last_tx else None,
         "comment": "", "symbol": None, "last_ts": last_tx["timestamp"] if last_tx else None}
     rows = [r for r in rows if r["callsign"] != CALLSIGN]
-    result = [own] + [{"callsign": r["callsign"], "lat": r["lat"], "lon": r["lon"],
+    # Nodo MeshCom di casa: se nel periodo non ha mandato la sua posizione (POS),
+    # si usa quella impostata in config (MESHCOM_LAT/LON, 0 = non mostrarlo)
+    mesh_home = None
+    if (HAS_MESHCOM and MESHCOM_CALLSIGN and MESHCOM_LAT and MESHCOM_LON
+            and not any(r["callsign"] == MESHCOM_CALLSIGN for r in rows)):
+        last_mc = db.execute("SELECT MAX(timestamp) FROM packets WHERE callsign=?",
+                             (MESHCOM_CALLSIGN,)).fetchone()[0]
+        mesh_home = {
+            "callsign": MESHCOM_CALLSIGN, "lat": MESHCOM_LAT, "lon": MESHCOM_LON, "rssi": "-",
+            "distance": 0, "type": "meshcom", "path": "MESHCOM:POS", "voltage": None,
+            "comment": "posizione da impostazioni", "symbol": None, "last_ts": last_mc}
+    db.close()
+    result = [igate] + ([mesh_home] if mesh_home else []) + [{"callsign": r["callsign"], "lat": r["lat"], "lon": r["lon"],
         "rssi": r["rssi"], "distance": r["distance"],
         "type": 'meshcom' if r['path'] == 'MESHCOM:POS' else ('meshcom_digi' if r['path'] and r['path'].startswith('MESHCOM:POS') else ('digi' if r['path'] and '*' in r['path'] else 'rf')),
         "path": r["path"] or "",
@@ -221,10 +236,6 @@ def map_data():
         "comment": r["comment"] or "",
         "symbol": r["symbol"] if "symbol" in r.keys() else None,
         "last_ts": r["timestamp"]} for r in rows]
-    # Il nodo MeshCom di casa sta nel gruppo arancio dei nodi locali, insieme all'iGate
-    for s in result:
-        if MESHCOM_CALLSIGN and s["callsign"] == MESHCOM_CALLSIGN:
-            s["type"] = "own"
     return jsonify(result)
 
 @app.route("/api/voltage")
@@ -639,6 +650,8 @@ def settings_get():
         "LONGITUDE": getattr(cfg, "LONGITUDE", 0),
         "MESHCOM_IP": getattr(cfg, "MESHCOM_IP", ""),
         "HAS_MESHCOM": getattr(cfg, "HAS_MESHCOM", False),
+        "MESHCOM_LAT": getattr(cfg, "MESHCOM_LAT", 0),
+        "MESHCOM_LON": getattr(cfg, "MESHCOM_LON", 0),
     })
 
 @app.route("/api/settings", methods=["POST"])
@@ -649,8 +662,9 @@ def settings_post():
         return jsonify({"ok": False, "msg": "Password errata"})
     import re
     cfg_path = "/usr/local/lib/lora-aprs/config.py"
-    fields = ["CALLSIGN", "DISPLAY_NAME", "IGATE_IP", "LATITUDE", "LONGITUDE", "MESHCOM_IP"]
-    numeric_fields = {"LATITUDE", "LONGITUDE"}
+    fields = ["CALLSIGN", "DISPLAY_NAME", "IGATE_IP", "LATITUDE", "LONGITUDE", "MESHCOM_IP",
+              "MESHCOM_LAT", "MESHCOM_LON"]
+    numeric_fields = {"LATITUDE", "LONGITUDE", "MESHCOM_LAT", "MESHCOM_LON"}
     # I valori finiscono dentro config.py (codice Python): si accettano solo
     # numeri per le coordinate e testo senza virgolette, barre o a capo.
     updates = {}
