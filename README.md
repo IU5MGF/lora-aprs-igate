@@ -20,6 +20,8 @@ Software completo per un iGate LoRa APRS basato su Raspberry Pi, con notifiche T
 - Poligono coverage RF storico (convex hull) — si espande automaticamente con nuove ricezioni, con filtro anti-outlier (95° percentile) per escludere ricezioni eccezionali che distorcerebbero la forma
 - Menu a tendina sulla mappa per finestra temporale (15 min → 24 ore)
 - Aggiornamento mappa ogni 10 secondi
+- Tre temi grafici a scelta (scuro, chiaro e Neon): pulsante TEMA nella pagina Impostazioni
+- Ora italiana automatica: il cambio tra ora legale e solare avviene da solo (non serve cambiare l'offset GMT sull'iGate)
 - Database SQLite con retention configurabile
 - Esportazione CSV stazioni ricevute
 - Tensione batteria iGate visibile in stat-card e popup mappa

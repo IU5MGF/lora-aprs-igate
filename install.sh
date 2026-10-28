@@ -459,6 +459,7 @@ DASHBOARD_DST="${DATA_DIR}/../flask-dashboard"
 sudo mkdir -p "$DASHBOARD_DST"
 sudo cp "$DASHBOARD_SRC"/*.html "$DASHBOARD_DST/"
 sudo cp "$DASHBOARD_SRC"/*.js "$DASHBOARD_DST/"
+sudo cp "$DASHBOARD_SRC"/*.css "$DASHBOARD_DST/"
 sudo chown -R $(logname):$(logname) "$DASHBOARD_DST"
 echo "  ✓ File HTML copiati in ${DASHBOARD_DST}"
 

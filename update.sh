@@ -108,6 +108,7 @@ echo -e "${CYAN}--- Copia file dashboard ---${NC}"
 if [ -d "$DASHBOARD_DIR" ]; then
     sudo cp "$SCRIPT_DIR/dashboard"/*.html "$DASHBOARD_DIR/"
     sudo cp "$SCRIPT_DIR/dashboard"/*.js "$DASHBOARD_DIR/"
+    sudo cp "$SCRIPT_DIR/dashboard"/*.css "$DASHBOARD_DIR/"
     sudo chown -R "$USR:$USR" "$DASHBOARD_DIR"
     echo "  ✓ File HTML/JS copiati in ${DASHBOARD_DIR}"
     # come install.sh: le pagine nascono con la località dell'autore, si mette la propria
