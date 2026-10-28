@@ -19,8 +19,8 @@ def now_utc():
 
 def local_to_utc(ts_str):
     try:
-        dt = datetime.strptime(ts_str, "%Y-%m-%dT%H:%M:%S")
-        return (dt - timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%S")
+        dt = ROME.localize(datetime.strptime(ts_str, "%Y-%m-%dT%H:%M:%S"))
+        return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     except:
         return now_utc()
 
@@ -119,10 +119,10 @@ def parse_rxlog(html):
         if rs_m:
             rssi = -int(rs_m.group(2))
             snr  =  int(rs_m.group(3))
-        today_local = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d")
+        today_local = datetime.now(ROME).strftime("%Y-%m-%d")
         try:
-            dt_local = datetime.strptime(f"{today_local}T{time_str}", "%Y-%m-%dT%H:%M:%S")
-            dt_utc   = dt_local - timedelta(hours=2)
+            dt_local = ROME.localize(datetime.strptime(f"{today_local}T{time_str}", "%Y-%m-%dT%H:%M:%S"))
+            dt_utc   = dt_local.astimezone(timezone.utc)
             today    = dt_utc.strftime("%Y-%m-%d")
             time_utc = dt_utc.strftime("%H:%M:%S")
         except:

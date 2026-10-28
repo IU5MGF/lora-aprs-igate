@@ -22,7 +22,15 @@ def compute_day(date_str):
     best = db.execute("SELECT callsign, MAX(distance) FROM packets WHERE crc_ok=1 AND msg_type='RX' AND distance IS NOT NULL AND path NOT LIKE '%*%' AND callsign != ? AND timestamp >= ? AND timestamp < ?", (CALLSIGN, ts_start, ts_end)).fetchone()
     rssi_avg = db.execute("SELECT AVG(rssi) FROM packets WHERE crc_ok=1 AND msg_type='RX' AND rssi IS NOT NULL AND timestamp >= ? AND timestamp < ?", (ts_start, ts_end)).fetchone()[0]
     crc = db.execute("SELECT COUNT(*) FROM packets WHERE crc_ok=0 AND timestamp >= ? AND timestamp < ?", (ts_start, ts_end)).fetchone()[0]
-    peak = db.execute("SELECT strftime('%H', timestamp) as hr, COUNT(*) as cnt FROM packets WHERE crc_ok=1 AND msg_type='RX' AND timestamp >= ? AND timestamp < ? GROUP BY hr ORDER BY cnt DESC LIMIT 1", (ts_start, ts_end)).fetchone()
+    # ora di punta in ora italiana (legale o solare)
+    ore = {}
+    for (ts,) in db.execute("SELECT timestamp FROM packets WHERE crc_ok=1 AND msg_type='RX' AND timestamp >= ? AND timestamp < ?", (ts_start, ts_end)):
+        try:
+            h = pytz.utc.localize(datetime.strptime(ts[:19], "%Y-%m-%dT%H:%M:%S")).astimezone(ROME).strftime("%H")
+        except ValueError:
+            continue
+        ore[h] = ore.get(h, 0) + 1
+    peak = max(ore.items(), key=lambda x: x[1]) if ore else None
     db.execute("""INSERT OR REPLACE INTO daily_stats
         (date, total_packets, total_rf, total_digi, unique_stations,
          best_distance, best_callsign, rssi_avg, crc_errors, peak_hour)
@@ -37,9 +45,15 @@ def compute_day(date_str):
     print(f"daily_stats: {date_str} — pkt:{total} rf:{total_rf} digi:{total_digi} uniche:{unique}", flush=True)
 
 db = sqlite3.connect(DB_PATH)
-dates = db.execute("""SELECT DISTINCT date(datetime(timestamp, '+2 hours')) as d
-    FROM packets WHERE crc_ok=1 AND msg_type='RX' ORDER BY d""").fetchall()
+# giorni in ora italiana (legale o solare), solo quelli che hanno davvero pacchetti
+dates = set()
+for (ts,) in db.execute("SELECT timestamp FROM packets WHERE crc_ok=1 AND msg_type='RX'"):
+    try:
+        dates.add((pytz.utc.localize(datetime.strptime(ts[:19], "%Y-%m-%dT%H:%M:%S")).astimezone(ROME).strftime("%Y-%m-%d"),))
+    except (TypeError, ValueError):
+        continue
 db.close()
+dates = sorted(dates)
 today = datetime.now(ROME).strftime("%Y-%m-%d")
 for row in dates:
     d = row[0]

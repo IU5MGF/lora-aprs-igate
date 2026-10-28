@@ -51,6 +51,11 @@ def get_db():
     db.row_factory = sqlite3.Row
     return db
 
+def inizio_oggi_utc():
+    """Mezzanotte di oggi (ora italiana, legale o solare) in UTC, come letterale SQL."""
+    mezzanotte = ROME.localize(datetime.now(ROME).replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None))
+    return "'" + mezzanotte.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M:%S") + "'"
+
 def rome_time(ts):
     try:
         dt = datetime.strptime(ts[:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)
@@ -91,7 +96,7 @@ def events_page():
 @app.route("/api/stats")
 def stats():
     db = get_db()
-    since = "datetime('now', '+2 hours', 'start of day', '-2 hours')"
+    since = inizio_oggi_utc()
     total      = db.execute(f"SELECT COUNT(*) FROM packets WHERE crc_ok=1 AND msg_type='RX' AND replace(timestamp,'T',' ') >= {since}").fetchone()[0]
     unique     = db.execute(f"SELECT COUNT(DISTINCT callsign) FROM packets WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL AND callsign != ? AND replace(timestamp,'T',' ') >= {since}", (CALLSIGN,)).fetchone()[0]
     best       = db.execute(f"SELECT callsign, MAX(distance) FROM packets WHERE crc_ok=1 AND msg_type='RX' AND distance IS NOT NULL AND path NOT LIKE '%*%' AND replace(timestamp,'T',' ') >= {since}").fetchone()
@@ -141,7 +146,7 @@ def packets():
 @app.route("/api/top_stations")
 def top_stations():
     db = get_db()
-    since = "datetime('now', '+2 hours', 'start of day', '-2 hours')"
+    since = inizio_oggi_utc()
     rows = db.execute(
         f"SELECT callsign, COUNT(*) as cnt, MAX(distance) as max_dist, AVG(rssi) as avg_rssi "
         f"FROM packets WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL AND callsign != ? "
@@ -156,7 +161,7 @@ def top_stations():
 @app.route("/api/top_stations_digi")
 def top_stations_digi():
     db = get_db()
-    since = "datetime('now', '+2 hours', 'start of day', '-2 hours')"
+    since = inizio_oggi_utc()
     rows = db.execute(
         f"SELECT callsign, COUNT(*) as cnt, MAX(distance) as max_dist, AVG(rssi) as avg_rssi "
         f"FROM packets WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL AND callsign != ? "
@@ -171,17 +176,18 @@ def top_stations_digi():
 @app.route("/api/hourly")
 def hourly():
     db = get_db()
-    since = "datetime('now', '+2 hours', 'start of day', '-2 hours')"
+    since = inizio_oggi_utc()
     rows = db.execute(
-        f"SELECT strftime('%H', datetime(timestamp, '+2 hours')) as hr, COUNT(*) as cnt "
-        f"FROM packets WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL AND callsign != '' AND callsign != ? AND replace(timestamp,'T',' ') >= {since} "
-        f"GROUP BY hr ORDER BY hr",
+        f"SELECT timestamp FROM packets WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL AND callsign != '' AND callsign != ? AND replace(timestamp,'T',' ') >= {since}",
         (CALLSIGN,)
     ).fetchall()
     db.close()
+    # ora italiana calcolata in Python: segue da sola ora legale e solare
     data = {str(h).zfill(2): 0 for h in range(24)}
     for r in rows:
-        data[r["hr"]] = r["cnt"]
+        rt = rome_time(r["timestamp"])
+        if rt:
+            data[rt.strftime("%H")] += 1
     return jsonify(data)
 @app.route("/api/map")
 def map_data():

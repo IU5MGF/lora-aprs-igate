@@ -139,6 +139,13 @@ def poll_packets():
     except Exception as e:
         print(f"Poll error: {e}", flush=True)
 
+def giorno_utc(data):
+    """Inizio e fine (UTC) di un giorno in ora italiana, legale o solare."""
+    inizio = ROME.localize(datetime.strptime(data, "%Y-%m-%d"))
+    fine   = ROME.localize(datetime.strptime(data, "%Y-%m-%d") + timedelta(days=1))
+    f = "%Y-%m-%d %H:%M:%S"
+    return inizio.astimezone(timezone.utc).strftime(f), fine.astimezone(timezone.utc).strftime(f)
+
 def daily_report():
     now = now_rome()
     yesterday = (now - timedelta(days=1)).strftime("%Y-%m-%d")
@@ -150,10 +157,10 @@ def daily_report():
         top5 = db.execute("""SELECT callsign, COUNT(*) as cnt FROM packets
             WHERE crc_ok=1 AND msg_type='RX' AND callsign IS NOT NULL AND callsign != ? AND (path IS NULL OR path != 'MESHCOM')
             AND path NOT LIKE '%*%'
-            AND replace(timestamp,'T',' ') >= datetime(?, '-2 hours')
-            AND replace(timestamp,'T',' ') < datetime(?, '+22 hours')
+            AND replace(timestamp,'T',' ') >= ?
+            AND replace(timestamp,'T',' ') < ?
             GROUP BY callsign ORDER BY cnt DESC LIMIT 5""",
-            (CALLSIGN, yesterday, yesterday)).fetchall()
+            (CALLSIGN, *giorno_utc(yesterday))).fetchall()
         db.close()
     except Exception as e:
         print(f"DB error daily: {e}", flush=True)
