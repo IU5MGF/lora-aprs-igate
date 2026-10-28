@@ -37,7 +37,7 @@ header{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 
 [data-theme="light"] .dropdown-item:hover{background:rgba(0,102,170,0.05)}
 [data-theme="light"] .nav-btn{color:#005085;border-color:#d0dce8}
 </style>
-</head>
+<link rel="stylesheet" href="/static/neon.css"></head>
 <body>
 <header>
   <div>
@@ -123,11 +123,11 @@ load();
 function applyTheme(t){
   document.documentElement.setAttribute('data-theme', t);
   const btn = document.getElementById('theme-btn');
-  if(btn) btn.innerHTML = t === 'dark' ? '&#9728; TEMA' : '&#9789; TEMA';
+  if(btn) btn.innerHTML = t === 'dark' ? '&#9728; TEMA' : t === 'light' ? '&#10024; TEMA' : '&#9790; TEMA';
 }
 function toggleTheme(){
   const current = document.documentElement.getAttribute('data-theme') || 'dark';
-  const next = current === 'dark' ? 'light' : 'dark';
+  const next = current === 'dark' ? 'light' : current === 'light' ? 'neon' : 'dark';  // scuro → chiaro → neon
   localStorage.setItem('theme', next);
   applyTheme(next);
   localStorage.setItem('theme_change', Date.now());

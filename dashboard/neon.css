@@ -1,0 +1,43 @@
+/* Tema NEON (28/10/2026): fucsia, ciano e viola su nero-viola, stile synthwave.
+   Si attiva con data-theme="neon" (pulsante TEMA: scuro → chiaro → neon).
+   Testi tutti con contrasto >= 7:1 sul fondo, come gli altri temi. */
+[data-theme="neon"]{
+  --bg:#0d0a1a;--bg2:#160f2b;--bg3:#1d1238;--border:#3b2470;--card:#160f2b;
+  --accent:#00e5ff;--accent2:#ff7a9a;--accent3:#3dffa8;--text:#f3eaff;--text-dim:#c9b8ff;--muted:#c9b8ff;
+  --blue:#00e5ff;--green:#3dffa8;--red:#ff7a9a;--orange:#ffae5c;
+  --fucsia:#ff6ae0;--neon:#7b2cff
+}
+[data-theme="neon"] body{
+  background:
+    linear-gradient(rgba(123,44,255,.07) 1px,transparent 1px) 0 0/40px 40px,
+    linear-gradient(90deg,rgba(123,44,255,.07) 1px,transparent 1px) 0 0/40px 40px,
+    radial-gradient(ellipse at top right,#2a0d3d 0%,transparent 55%),
+    var(--bg);
+  background-attachment:fixed
+}
+[data-theme="neon"] body::before{background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(123,44,255,.025) 2px,rgba(123,44,255,.025) 4px)}
+[data-theme="neon"] header{background:#0a0716ee;border-bottom:1px solid var(--neon);box-shadow:0 4px 24px #7b2cff33}
+[data-theme="neon"] .logo-icon{border-color:var(--fucsia);box-shadow:0 0 10px #ff6ae066}
+[data-theme="neon"] .logo-icon svg{fill:var(--fucsia)}
+[data-theme="neon"] .logo-text{background:linear-gradient(90deg,var(--fucsia),var(--accent));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 6px #ff6ae088);font-weight:700}
+[data-theme="neon"] .logo-sub{display:inline-block;color:var(--fucsia);border:1px solid var(--fucsia);border-radius:3px;padding:1px 8px;margin-top:3px;box-shadow:0 0 8px #ff6ae044,inset 0 0 6px #ff6ae022}
+[data-theme="neon"] .clock{color:var(--accent);text-shadow:0 0 8px #00e5ff88}
+[data-theme="neon"] .stat-card{border-color:var(--border);border-top:2px solid var(--fucsia);box-shadow:0 0 16px #7b2cff22}
+[data-theme="neon"] .stat-card::after{background:linear-gradient(135deg,rgba(255,106,224,.06) 0%,transparent 60%)}
+[data-theme="neon"] .stat-value{text-shadow:0 0 10px #00e5ff55}
+[data-theme="neon"] .panel{box-shadow:0 0 0 1px #7b2cff22,0 0 18px #7b2cff22}
+[data-theme="neon"] .panel:hover{border-color:var(--neon)}
+[data-theme="neon"] .panel-header{background:linear-gradient(90deg,#24124a,#1a1033)}
+[data-theme="neon"] .panel-title{text-shadow:0 0 8px #00e5ff66}
+[data-theme="neon"] .panel-badge{color:var(--fucsia);border-color:var(--fucsia)}
+[data-theme="neon"] .chart-bar{background:linear-gradient(180deg,var(--accent) 0%,rgba(123,44,255,.45) 100%);box-shadow:0 0 8px #00e5ff44}
+[data-theme="neon"] .chart-bar.current{background:linear-gradient(180deg,var(--fucsia) 0%,rgba(123,44,255,.45) 100%);box-shadow:0 0 10px #ff6ae088}
+[data-theme="neon"] .packets-table td{border-bottom-color:#261848}
+[data-theme="neon"] .packets-table tr:hover td{background:rgba(255,106,224,.06)}
+[data-theme="neon"] .nav-btn{color:var(--fucsia);border-color:var(--fucsia);box-shadow:0 0 8px #ff6ae044}
+[data-theme="neon"] .nav-btn:hover{box-shadow:0 0 14px #ff6ae088}
+[data-theme="neon"] .dropdown-menu{background:#120c25;border-color:var(--neon);box-shadow:0 0 18px #7b2cff44}
+[data-theme="neon"] .dropdown-item{color:var(--text);border-bottom-color:#261848}
+[data-theme="neon"] .dropdown-item:hover{background:rgba(255,106,224,.10);color:var(--fucsia)}
+[data-theme="neon"] #theme-btn{color:var(--fucsia)!important;border-color:var(--fucsia)!important}
+[data-theme="neon"] ::-webkit-scrollbar-thumb{background:var(--neon)}
