@@ -29,7 +29,7 @@ services:
 
   mqtt-telegram:
     build: .
-    container_name: igate-mqtt-telegram
+    container_name: igate-telegram
     command: python3 mqtt-telegram.py
     volumes:
       - ${RADIO_DIR:?imposta RADIO_DIR nel file .env}/data:${RADIO_DIR}/data
