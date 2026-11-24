@@ -20,6 +20,28 @@ YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
+# Utente che usa l'iGate: chi ha lanciato sudo, altrimenti chi ha fatto login, altrimenti l'utente attuale
+# (logname da solo fallisce nella console di Proxmox/LXC e con set -e fermava lo script)
+UTENTE="${SUDO_USER:-$(logname 2>/dev/null || whoami)}"
+HOME_UTENTE="$(getent passwd "$UTENTE" | cut -d: -f6)"
+HOME_UTENTE="${HOME_UTENTE:-/home/$UTENTE}"
+
+# Da root senza sudo installato (container LXC appena creato) i comandi "sudo ..." girano direttamente
+if [ "$(id -u)" = 0 ] && ! command -v sudo >/dev/null; then
+    sudo() { "$@"; }
+fi
+
+# Programmi che servono già durante le domande
+MANCANTI=""
+for p in python3 curl; do
+    command -v "$p" >/dev/null || MANCANTI="$MANCANTI $p"
+done
+if [ -n "$MANCANTI" ]; then
+    echo -e "${YELLOW}Installo i programmi che mancano:${MANCANTI}${NC}"
+    sudo apt update
+    sudo apt install -y $MANCANTI
+fi
+
 echo -e "${CYAN}"
 echo "============================================="
 echo "   LoRa APRS iGate — Installer interattivo"
@@ -129,7 +151,7 @@ LONGITUDE=$(ask "Longitudine decimale (es. 11.52987)" "${DEF_LON:-11.52987}")
 # Geocoding inverso
 echo ""
 echo -e "${GREEN}Ricerca citta dalle coordinate...${NC}"
-LOCATION=$(curl -s --max-time 5 "https://nominatim.openstreetmap.org/reverse?lat=${LATITUDE}&lon=${LONGITUDE}&format=json" 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['address'].get('city') or d['address'].get('town') or d['address'].get('village',''))" 2>/dev/null)
+LOCATION=$(curl -s --max-time 5 -A "lora-aprs-igate-installer" "https://nominatim.openstreetmap.org/reverse?lat=${LATITUDE}&lon=${LONGITUDE}&format=json" 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['address'].get('city') or d['address'].get('town') or d['address'].get('village',''))" 2>/dev/null || true)
 if [ -z "$LOCATION" ]; then
     echo -e "${YELLOW}  Geocoding non disponibile${NC}"
     LOCATION=$(ask "Inserisci la tua citta")
@@ -150,7 +172,7 @@ if [ "$HAS_SSD" = "True" ]; then
     DATA_DIR="${SSD_MOUNT}/radio/data"
 else
     SSD_MOUNT=""
-    DATA_DIR="/home/$(logname)/radio/data"
+    DATA_DIR="${HOME_UTENTE}/radio/data"
 fi
 
 echo ""
@@ -313,7 +335,7 @@ echo ""
 echo -e "${GREEN}Creazione directory dati in ${DATA_DIR}...${NC}"
 sudo mkdir -p "$DATA_DIR"
 sudo mkdir -p "$DATA_DIR"
-    sudo chown -R $(logname):$(logname) "$DATA_DIR" 2>/dev/null || true
+    sudo chown -R "$UTENTE":"$UTENTE" "$DATA_DIR" 2>/dev/null || true
     sudo chmod 755 "$DATA_DIR"
 
 # =============================================================================
@@ -361,7 +383,7 @@ After=network.target
 
 [Service]
 ExecStart=${exec}
-User=$(logname)
+User=$UTENTE
 Environment=PYTHONPATH=/usr/local/lib/lora-aprs
 Restart=always
 RestartSec=10
@@ -378,7 +400,7 @@ SVCEOF
 
 echo -e "${CYAN}--- Inizializzazione database ---${NC}"
 sudo python3 /usr/local/bin/syslog-collector.py --init-only
-sudo chown -R $(logname):$(logname) "$DATA_DIR" 2>/dev/null || true
+sudo chown -R "$UTENTE":"$UTENTE" "$DATA_DIR" 2>/dev/null || true
 echo -e "${GREEN}Database inizializzato.${NC}"
 
 install_service "syslog-collector" "LoRa APRS Syslog Collector"   "/usr/bin/python3 /usr/local/bin/syslog-collector.py"
@@ -460,7 +482,7 @@ sudo mkdir -p "$DASHBOARD_DST"
 sudo cp "$DASHBOARD_SRC"/*.html "$DASHBOARD_DST/"
 sudo cp "$DASHBOARD_SRC"/*.js "$DASHBOARD_DST/"
 sudo cp "$DASHBOARD_SRC"/*.css "$DASHBOARD_DST/"
-sudo chown -R $(logname):$(logname) "$DASHBOARD_DST"
+sudo chown -R "$UTENTE":"$UTENTE" "$DASHBOARD_DST"
 echo "  ✓ File HTML copiati in ${DASHBOARD_DST}"
 
 # =============================================================================
@@ -490,7 +512,7 @@ if [ "$DOCKER_MODE" = 1 ]; then
     (cd "$SCRIPT_DIR" && $DC build && \
         $DC run --rm --no-deps syslog-collector python3 syslog-collector.py --init-only && \
         $DC up -d)
-    sudo chown -R $(logname):$(logname) "$DATA_DIR" 2>/dev/null || true
+    sudo chown -R "$UTENTE":"$UTENTE" "$DATA_DIR" 2>/dev/null || true
 fi
 
 # =============================================================================
