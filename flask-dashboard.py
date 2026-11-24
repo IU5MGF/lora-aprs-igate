@@ -223,12 +223,16 @@ def map_data():
         "comment": "", "symbol": None, "last_ts": last_tx["timestamp"] if last_tx else None}
     rows = [r for r in rows if r["callsign"] != CALLSIGN]
     # Nodo MeshCom di casa: se nel periodo non ha mandato la sua posizione (POS),
-    # si usa quella impostata in config (MESHCOM_LAT/LON, 0 = non mostrarlo)
+    # si usa quella impostata in config (MESHCOM_LAT/LON, 0 = non mostrarlo),
+    # ma solo se nel periodo ha mandato qualcosa: da spento non compare
     mesh_home = None
+    last_mc = None
     if (HAS_MESHCOM and MESHCOM_CALLSIGN and MESHCOM_LAT and MESHCOM_LON
             and not any(r["callsign"] == MESHCOM_CALLSIGN for r in rows)):
-        last_mc = db.execute("SELECT MAX(timestamp) FROM packets WHERE callsign=?",
-                             (MESHCOM_CALLSIGN,)).fetchone()[0]
+        last_mc = db.execute("""SELECT MAX(timestamp) FROM packets WHERE callsign=?
+            AND replace(timestamp,'T',' ') >= datetime('now', '-' || ? || ' minutes')""",
+                             (MESHCOM_CALLSIGN, minutes)).fetchone()[0]
+    if last_mc:
         mesh_home = {
             "callsign": MESHCOM_CALLSIGN, "lat": MESHCOM_LAT, "lon": MESHCOM_LON, "rssi": "-",
             "distance": 0, "type": "meshcom", "path": "MESHCOM:POS", "voltage": None,

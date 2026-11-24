@@ -166,9 +166,16 @@ async function loadMap() {
       const isGWbyRange = !isTrackerByComment && ssid !== null && ssid >= 10 && ssid <= 99;
       const isGWbyComment = !isGWbyRange && (commentUpper.includes('DIGI') || commentUpper.includes('IGATE') || commentUpper.includes('GATEWAY') || commentUpper.includes('GRF') || /^IR\d/.test(s.callsign) || /^IQ\d/.test(s.callsign) || (commentUpper.includes('LORA APRS') && (commentUpper.includes('IGATE') || commentUpper.includes('DIGI') || commentUpper.includes('GATEWAY'))));
       const isMobileBySymbol = s.symbol === '>' || s.symbol === '<';
-      const isMobile = !isBalloon && (isMobileBySymbol || (!isGWbyComment && !isGWbyRange && ssid !== null && !(ssid >= 10 && ssid <= 99)));
+      // Stazione meteo: commento nel formato meteo APRS (vento/raffica/temperatura, es. ".../...g...t049...")
+      const isWX = !isBalloon && /^[.\d ]{3}\/[.\d ]{3}g[.\d ]{3}t[-.\d ]{2,3}/.test(s.comment || '');
+      const isMobile = !isBalloon && !isWX && (isMobileBySymbol || (!isGWbyComment && !isGWbyRange && ssid !== null && !(ssid >= 10 && ssid <= 99)));
       let html;
-      if (isBalloon) {
+      if (isWX) {
+        html = "<div style='position:relative'>"
+          + "<div style='background:#00bfff;width:24px;height:24px;border-radius:50%;border:2px solid white;box-shadow:0 0 6px #00bfff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;color:#000'>WX</div>"
+          + makeLabel(s.callsign, "#00bfff")
+          + "</div>";
+      } else if (isBalloon) {
         html = "<div style='position:relative'>"
           + "<div style='font-size:16px;line-height:1;filter:drop-shadow(0 0 3px " + color + ")'>🎈</div>"
           + makeLabel(s.callsign, color)
@@ -190,7 +197,7 @@ async function loadMap() {
           + "</div>";
       }
       const marker = L.marker([s.lat, s.lon], {
-        icon: L.divIcon({ className: "", html: html, iconSize: [size, size], iconAnchor: [size/2, size/2] })
+        icon: L.divIcon({ className: "", html: html, iconSize: isWX ? [28, 28] : [size, size], iconAnchor: isWX ? [14, 14] : [size/2, size/2] })
       });
       marker._callsign = s.callsign;
       // Parsing WX dal comment
